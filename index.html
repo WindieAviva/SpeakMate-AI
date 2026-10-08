@@ -77,11 +77,6 @@
       color: white;
     }
 
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #222;
-    }
-
     button:disabled {
       opacity: .5;
       cursor: not-allowed;
@@ -142,7 +137,7 @@
     </div>
 
 
-    <!-- GEMINI CONNECTION -->
+    <!-- GEMINI -->
 
     <div class="card">
 
@@ -235,7 +230,6 @@
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbx4wg8kv7krK1Qche47lpHzFsjN5Hn7EXSoCEE4Pae5wGcHk_9zCkYUKUoRPKST6BRL/exec";
 
-
 const MODEL_NAME =
   "gemini-3.8-live";
 
@@ -314,7 +308,7 @@ function setConnectionStatus(
 
 
 // =====================================================
-// CONNECT TO GEMINI
+// CONNECT GEMINI
 // =====================================================
 
 function connectToGemini() {
@@ -329,11 +323,9 @@ function connectToGemini() {
 
   }
 
-
   addLog(
     "Meminta token dari Apps Script..."
   );
-
 
   requestEphemeralToken();
 
@@ -341,7 +333,7 @@ function connectToGemini() {
 
 
 // =====================================================
-// REQUEST EPHEMERAL TOKEN
+// EPHEMERAL TOKEN
 // =====================================================
 
 function requestEphemeralToken() {
@@ -462,7 +454,7 @@ function requestEphemeralToken() {
 
 
 // =====================================================
-// START GEMINI LIVE
+// GEMINI LIVE SESSION
 // =====================================================
 
 function startGeminiSession(
@@ -528,12 +520,11 @@ function startGeminiSession(
                 text:
                   "You are SpeakMate AI, " +
                   "an English speaking coach. " +
-                  "You help users practice " +
-                  "English speaking and " +
-                  "job interviews. " +
+                  "You help users practice English speaking " +
+                  "and job interviews. " +
                   "Speak naturally and briefly. " +
-                  "When the user speaks, respond " +
-                  "as a friendly English coach."
+                  "When the user speaks, respond as a friendly " +
+                  "English coach."
 
               }
 
@@ -565,9 +556,9 @@ function startGeminiSession(
     };
 
 
-// =====================================================
-// GEMINI MESSAGE
-// =====================================================
+  // ===================================================
+  // GEMINI RESPONSE
+  // ===================================================
 
   socket.onmessage =
     async function(event) {
@@ -625,10 +616,6 @@ function startGeminiSession(
     };
 
 
-// =====================================================
-// WEBSOCKET ERROR
-// =====================================================
-
   socket.onerror =
     function(error) {
 
@@ -649,10 +636,6 @@ function startGeminiSession(
 
     };
 
-
-// =====================================================
-// WEBSOCKET CLOSE
-// =====================================================
 
   socket.onclose =
     function(event) {
@@ -716,9 +699,9 @@ function processGeminiResponse(
     );
 
 
-// =====================================================
-// SETUP COMPLETE
-// =====================================================
+    // ================================================
+    // SETUP COMPLETE
+    // ================================================
 
     if (
       data.setupComplete
@@ -753,9 +736,9 @@ function processGeminiResponse(
     }
 
 
-// =====================================================
-// SERVER CONTENT
-// =====================================================
+    // ================================================
+    // SERVER CONTENT
+    // ================================================
 
     if (
       data.serverContent
@@ -765,9 +748,9 @@ function processGeminiResponse(
         data.serverContent;
 
 
-// =====================================================
-// MODEL TURN
-// =====================================================
+      // ==============================================
+      // MODEL TURN
+      // ==============================================
 
       if (
         serverContent.modelTurn
@@ -787,10 +770,9 @@ function processGeminiResponse(
         parts.forEach(
           function(part) {
 
-
-// =====================================================
-// AUDIO
-// =====================================================
+            // ----------------------------------------
+            // AUDIO
+            // ----------------------------------------
 
             if (
               part.inlineData &&
@@ -809,9 +791,9 @@ function processGeminiResponse(
             }
 
 
-// =====================================================
-// TEXT
-// =====================================================
+            // ----------------------------------------
+            // TEXT
+            // ----------------------------------------
 
             if (
               part.text
@@ -830,9 +812,9 @@ function processGeminiResponse(
       }
 
 
-// =====================================================
-// TURN COMPLETE
-// =====================================================
+      // ==============================================
+      // TURN COMPLETE
+      // ==============================================
 
       if (
         serverContent.turnComplete
@@ -847,9 +829,9 @@ function processGeminiResponse(
     }
 
 
-// =====================================================
-// GEMINI ERROR
-// =====================================================
+    // ================================================
+    // ERROR
+    // ================================================
 
     if (
       data.error
@@ -1003,9 +985,29 @@ async function startMicrophone() {
             .getChannelData(0);
 
 
+        // ==========================================
+        // RESAMPLE 48kHz → 16kHz
+        // ==========================================
+
+        const targetSampleRate =
+          16000;
+
+
+        const inputSampleRate =
+          audioContext.sampleRate;
+
+
+        const resampled =
+          downsampleAudio(
+            inputData,
+            inputSampleRate,
+            targetSampleRate
+          );
+
+
         const pcmData =
           convertFloat32ToPCM16(
-            inputData
+            resampled
           );
 
 
@@ -1051,7 +1053,7 @@ async function startMicrophone() {
           ) {
 
             addLog(
-              "🎤 Audio sedang dikirim ke Gemini..."
+              "🎤 Audio 16kHz sedang dikirim ke Gemini..."
             );
 
           }
@@ -1121,6 +1123,102 @@ async function startMicrophone() {
       "Microphone: ERROR";
 
   }
+
+}
+
+
+// =====================================================
+// DOWNSAMPLE AUDIO
+// =====================================================
+
+function downsampleAudio(
+  inputData,
+  inputSampleRate,
+  targetSampleRate
+) {
+
+  if (
+    targetSampleRate >=
+    inputSampleRate
+  ) {
+
+    return inputData;
+
+  }
+
+
+  const sampleRateRatio =
+    inputSampleRate /
+    targetSampleRate;
+
+
+  const newLength =
+    Math.round(
+      inputData.length /
+      sampleRateRatio
+    );
+
+
+  const result =
+    new Float32Array(
+      newLength
+    );
+
+
+  let offsetResult = 0;
+
+  let offsetBuffer = 0;
+
+
+  while (
+    offsetResult <
+    result.length
+  ) {
+
+    const nextOffsetBuffer =
+      Math.round(
+        (
+          offsetResult + 1
+        ) *
+        sampleRateRatio
+      );
+
+
+    let accum = 0;
+
+    let count = 0;
+
+
+    for (
+      let i = offsetBuffer;
+      i < nextOffsetBuffer &&
+      i < inputData.length;
+      i++
+    ) {
+
+      accum +=
+        inputData[i];
+
+      count++;
+
+    }
+
+
+    result[offsetResult] =
+      count > 0
+        ? accum / count
+        : 0;
+
+
+    offsetResult++;
+
+    offsetBuffer =
+      nextOffsetBuffer;
+
+  }
+
+
+  return result;
 
 }
 
