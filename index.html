@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>SpeakMate AI</title>
+
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+
+    body {
+
+      margin: 0;
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+      background:
+        linear-gradient(
+          135deg,
+          #eef2ff,
+          #f8fafc
+        );
+
+      min-height: 100vh;
+
+      color: #1f2937;
+
+    }
+
+
+    .container {
+
+      width: 90%;
+
+      max-width: 900px;
+
+      margin:
+        40px auto;
+
+    }
+
+
+    h1 {
+
+      margin-bottom: 5px;
+
+      font-size: 34px;
+
+    }
+
+
+    .subtitle {
+
+      color: #64748b;
+
+      margin-bottom: 25px;
+
+    }
+
+
+    .card {
+
+      background: white;
+
+      border-radius: 18px;
+
+      padding: 25px;
+
+      margin-bottom: 20px;
+
+      box-shadow:
+        0 8px 25px
+        rgba(0, 0, 0, 0.08);
+
+    }
+
+
+    .buttons {
+
+      display: flex;
+
+      flex-wrap: wrap;
+
+      gap: 10px;
+
+    }
+
+
+    button {
+
+      border: none;
+
+      border-radius: 10px;
+
+      padding:
+        13px 20px;
+
+      font-size: 15px;
+
+      cursor: pointer;
+
+      transition:
+        0.2s;
+
+    }
+
+
+    button:hover:not(:disabled) {
+
+      transform:
+        translateY(-1px);
+
+    }
+
+
+    button:disabled {
+
+      opacity: 0.5;
+
+      cursor: not-allowed;
+
+    }
+
+
+    #connectButton {
+
+      background: #2563eb;
+
+      color: white;
+
+    }
+
+
+    #disconnectButton {
+
+      background: #dc2626;
+
+      color: white;
+
+    }
+
+
+    #micButton {
+
+      background: #16a34a;
+
+      color: white;
+
+    }
+
+
+    .status {
+
+      margin-top: 18px;
+
+      padding: 14px;
+
+      border-radius: 10px;
+
+      background: #eef2ff;
+
+      font-weight: bold;
+
+    }
+
+
+    .conversation {
+
+      background: #f8fafc;
+
+      border-radius: 12px;
+
+      padding: 20px;
+
+      min-height: 130px;
+
+    }
+
+
+    .label {
+
+      font-weight: bold;
+
+      margin-bottom: 10px;
+
+    }
+
+
+    #geminiText {
+
+      color: #475569;
+
+      white-space: pre-wrap;
+
+      line-height: 1.6;
+
+    }
+
+
+    #log {
+
+      background: #111827;
+
+      color: #d1fae5;
+
+      border-radius: 12px;
+
+      padding: 15px;
+
+      min-height: 220px;
+
+      max-height: 400px;
+
+      overflow-y: auto;
+
+      font-family: monospace;
+
+      font-size: 13px;
+
+      white-space: pre-wrap;
+
+    }
+
+
+    .info {
+
+      color: #64748b;
+
+      line-height: 1.6;
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <div class="container">
+
+
+    <h1>🎙️ SpeakMate AI</h1>
+
+    <div class="subtitle">
+
+      English Speaking Coach &
+      Interview Simulator
+
+    </div>
+
+
+    <!-- CONNECTION -->
+
+    <div class="card">
+
+      <h2>🤖 Gemini Live</h2>
+
+      <p class="info">
+
+        Hubungkan SpeakMate AI
+        dengan Gemini Live.
+
+      </p>
+
+
+      <div class="buttons">
+
+
+        <button
+          id="connectButton"
+          onclick="connectGemini()"
+        >
+
+          🔌 Connect Gemini
+
+        </button>
+
+
+        <button
+          id="disconnectButton"
+          onclick="disconnectGemini()"
+          disabled
+        >
+
+          🔴 Disconnect
+
+        </button>
+
+
+        <button
+          id="micButton"
+          onclick="toggleMicrophone()"
+          disabled
+        >
+
+          🎤 Start Microphone
+
+        </button>
+
+
+      </div>
+
+
+      <div
+        id="status"
+        class="status"
+      >
+
+        Belum terhubung.
+
+      </div>
+
+    </div>
+
+
+    <!-- CONVERSATION -->
+
+    <div class="card">
+
+      <h2>💬 Conversation</h2>
+
+
+      <div class="conversation">
+
+        <div class="label">
+
+          Gemini:
+
+        </div>
+
+
+        <div id="geminiText">
+
+          Belum ada percakapan.
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- LOG -->
+
+    <div class="card">
+
+      <h2>🛠️ System Log</h2>
+
+
+      <div id="log">
+
+        System log akan muncul di sini...
+
+      </div>
+
+    </div>
+
+
+  </div>
+
+
+
+<script>
+
+
+/*
+=====================================================
+CONFIGURATION
+=====================================================
+*/
+
+
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbx4wg8kv7krK1Qche47lpHzFsjN5Hn7EXSoCEE4Pae5wGcHk_9zCkYUKUoRPKST6BRL/exec";
+
+
+const MODEL_NAME =
+  "gemini-3.8-live";
+
+
+const WEBSOCKET_URL =
+  "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
+
+
+/*
+=====================================================
+GLOBAL VARIABLES
+=====================================================
+*/
+
+
+let websocket = null;
+
+let isConnected = false;
+
+let tokenWindow = null;
+
+
+/*
+=====================================================
+MICROPHONE VARIABLES
+=====================================================
+*/
+
+
+let audioContext = null;
+
+let mediaStream = null;
+
+let microphoneSource = null;
+
+let audioProcessor = null;
+
+let isMicrophoneActive = false;
+
+
+/*
+=====================================================
+UI
+=====================================================
+*/
+
+
+function updateStatus(message) {
+
+  document.getElementById(
+    "status"
+  ).innerText = message;
+
+}
+
+
+function log(message) {
+
+  const logElement =
+    document.getElementById(
+      "log"
+    );
+
+
+  const time =
+    new Date()
+      .toLocaleTimeString();
+
+
+  logElement.innerText +=
+    "\n[" +
+    time +
+    "] " +
+    message;
+
+
+  logElement.scrollTop =
+    logElement.scrollHeight;
+
+}
+
+
+/*
+=====================================================
+CONNECT GEMINI
+=====================================================
+*/
+
+
+function connectGemini() {
+
+
+  if (isConnected) {
+
+    log(
+      "Gemini sudah terhubung."
+    );
+
+    return;
+
+  }
+
+
+  log(
+    "Membuka Token Bridge..."
+  );
+
+
+  updateStatus(
+    "Meminta token Gemini..."
+  );
+
+
+  /*
+   * Buka Apps Script sebagai
+   * window/tab baru.
+   *
+   * Ini bukan tempat microphone.
+   * Hanya mengambil ephemeral token.
+   */
+
+
+  tokenWindow =
+    window.open(
+
+      APPS_SCRIPT_URL +
+      "?bridge=1",
+
+      "SpeakMateToken",
+
+      "width=500,height=400"
+
+    );
+
+
+  if (!tokenWindow) {
+
+    log(
+      "Popup diblokir browser."
+    );
+
+
+    updateStatus(
+      "Izinkan popup untuk SpeakMate."
+    );
+
+
+    return;
+
+  }
+
+
+  log(
+    "Token Bridge dibuka."
+  );
+
+}
+
+
+/*
+=====================================================
+TERIMA TOKEN DARI APPS SCRIPT
+=====================================================
+*/
+
+
+window.addEventListener(
+  "message",
+  function(event) {
+
+
+    /*
+     * Untuk sementara kita menerima
+     * pesan dari Apps Script.
+     */
+
+
+    if (
+      event.data &&
+      event.data.type ===
+      "speakmate-token"
+    ) {
+
+
+      log(
+        "Token berhasil diterima."
+      );
+
+
+      /*
+       * Tutup window token
+       */
+
+      if (
+        tokenWindow &&
+        !tokenWindow.closed
+      ) {
+
+        tokenWindow.close();
+
+      }
+
+
+      /*
+       * Mulai Gemini
+       */
+
+      startGeminiSession(
+        event.data.token
+      );
+
+    }
+
+
+    /*
+     * TOKEN ERROR
+     */
+
+    if (
+      event.data &&
+      event.data.type ===
+      "speakmate-token-error"
+    ) {
+
+
+      log(
+        "Token error: " +
+        event.data.error
+      );
+
+
+      updateStatus(
+        "Gagal mendapatkan token."
+      );
+
+    }
+
+  }
+);
+
+
+/*
+=====================================================
+START GEMINI SESSION
+=====================================================
+*/
+
+
+function startGeminiSession(
+  token
+) {
+
+
+  log(
+    "Membuat WebSocket..."
+  );
+
+
+  updateStatus(
+    "Membuka koneksi Live API..."
+  );
+
+
+  const wsUrl =
+    WEBSOCKET_URL +
+    "?access_token=" +
+    encodeURIComponent(
+      token
+    );
+
+
+  websocket =
+    new WebSocket(
+      wsUrl
+    );
+
+
+  /*
+   * WEBSOCKET OPEN
+   */
+
+
+  websocket.onopen =
+    function() {
+
+
+      log(
+        "WebSocket Connected."
+      );
+
+
+      isConnected = true;
+
+
+      document.getElementById(
+        "connectButton"
+      ).disabled = true;
+
+
+      document.getElementById(
+        "disconnectButton"
+      ).disabled = false;
+
+
+      updateStatus(
+        "Mengirim konfigurasi..."
+      );
+
+
+      /*
+       * Setup Gemini
+       */
+
+
+      const setupMessage = {
+
+        setup: {
+
+          model:
+            "models/" +
+            MODEL_NAME,
+
+
+          generationConfig: {
+
+            responseModalities: [
+              "AUDIO"
+            ]
+
+          },
+
+
+          systemInstruction: {
+
+            parts: [
+
+              {
+
+                text:
+
+                  "You are SpeakMate AI, " +
+
+                  "an English speaking coach. " +
+
+                  "You help users practice " +
+
+                  "English speaking and " +
+
+                  "job interviews. " +
+
+                  "For this initial connection test, " +
+
+                  "greet the user briefly in English."
+
+              }
+
+            ]
+
+          }
+
+        }
+
+      };
+
+
+      websocket.send(
+        JSON.stringify(
+          setupMessage
+        )
+      );
+
+
+      log(
+        "Configuration dikirim."
+      );
+
+    };
+
+
+  /*
+   * WEBSOCKET MESSAGE
+   */
+
+
+  websocket.onmessage =
+    async function(event) {
+
+
+      log(
+        "Response diterima dari Gemini."
+      );
+
+
+      try {
+
+
+        let data =
+          event.data;
+
+
+        /*
+         * Blob
+         */
+
+
+        if (
+          data instanceof Blob
+        ) {
+
+          log(
+            "Response berupa Blob."
+          );
+
+
+          data =
+            await data.text();
+
+        }
+
+
+        /*
+         * ArrayBuffer
+         */
+
+
+        if (
+          data instanceof ArrayBuffer
+        ) {
+
+          log(
+            "Response berupa ArrayBuffer."
+          );
+
+
+          data =
+            new TextDecoder()
+              .decode(data);
+
+        }
+
+
+        /*
+         * Validasi
+         */
+
+
+        if (
+          typeof data !==
+          "string"
+        ) {
+
+          log(
+            "Format response tidak dikenali: " +
+            typeof data
+          );
+
+          return;
+
+        }
+
+
+        console.log(
+          "Gemini raw response:",
+          data
+        );
+
+
+        const response =
+          JSON.parse(data);
+
+
+        console.log(
+          "Gemini response:",
+          response
+        );
+
+
+        /*
+         * SETUP COMPLETE
+         */
+
+
+        if (
+          response.setupComplete
+        ) {
+
+
+          log(
+            "Gemini Live session siap."
+          );
+
+
+          updateStatus(
+            "Gemini Live siap 🎉"
+          );
+
+
+          document.getElementById(
+            "micButton"
+          ).disabled = false;
+
+        }
+
+
+        /*
+         * SERVER CONTENT
+         */
+
+
+        if (
+          response.serverContent
+        ) {
+
+
+          const serverContent =
+            response.serverContent;
+
+
+          /*
+           * Output transcription
+           */
+
+
+          if (
+            serverContent
+              .outputTranscription
+          ) {
+
+
+            const text =
+              serverContent
+                .outputTranscription
+                .text;
+
+
+            document.getElementById(
+              "geminiText"
+            ).innerText =
+              text;
+
+
+            log(
+              "Gemini: " +
+              text
+            );
+
+          }
+
+
+          /*
+           * Model turn
+           */
+
+
+          if (
+            serverContent.modelTurn &&
+            serverContent.modelTurn.parts
+          ) {
+
+
+            for (
+              const part of
+              serverContent
+                .modelTurn
+                .parts
+            ) {
+
+
+              if (
+                part.inlineData
+              ) {
+
+                log(
+                  "Audio dari Gemini diterima."
+                );
+
+              }
+
+            }
+
+          }
+
+        }
+
+
+        /*
+         * API ERROR
+         */
+
+
+        if (
+          response.error
+        ) {
+
+          log(
+            "Gemini API ERROR: " +
+            JSON.stringify(
+              response.error
+            )
+          );
+
+        }
+
+      }
+
+      catch (error) {
+
+
+        log(
+          "Gagal membaca response: " +
+          error.message
+        );
+
+
+        console.error(
+          error
+        );
+
+      }
+
+    };
+
+
+  /*
+   * WEBSOCKET ERROR
+   */
+
+
+  websocket.onerror =
+    function(error) {
+
+
+      log(
+        "WebSocket ERROR."
+      );
+
+
+      console.error(
+        error
+      );
+
+
+      updateStatus(
+        "WebSocket error."
+      );
+
+    };
+
+
+  /*
+   * WEBSOCKET CLOSE
+   */
+
+
+  websocket.onclose =
+    function(event) {
+
+
+      log(
+        "WebSocket ditutup."
+      );
+
+
+      log(
+        "Close code: " +
+        event.code
+      );
+
+
+      log(
+        "Close reason: " +
+        (
+          event.reason ||
+          "(tidak ada)"
+        )
+      );
+
+
+      isConnected = false;
+
+
+      stopMicrophone();
+
+
+      document.getElementById(
+        "connectButton"
+      ).disabled = false;
+
+
+      document.getElementById(
+        "disconnectButton"
+      ).disabled = true;
+
+
+      document.getElementById(
+        "micButton"
+      ).disabled = true;
+
+
+      updateStatus(
+        "Gemini tidak terhubung."
+      );
+
+    };
+
+}
+
+
+/*
+=====================================================
+MICROPHONE
+=====================================================
+*/
+
+
+async function toggleMicrophone() {
+
+
+  /*
+   * Kalau aktif → stop
+   */
+
+
+  if (
+    isMicrophoneActive
+  ) {
+
+    stopMicrophone();
+
+    return;
+
+  }
+
+
+  /*
+   * Pastikan Gemini aktif
+   */
+
+
+  if (
+    !websocket ||
+    websocket.readyState !==
+    WebSocket.OPEN
+  ) {
+
+    log(
+      "Gemini belum terhubung."
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+
+    log(
+      "Meminta akses microphone..."
+    );
+
+
+    /*
+     * getUserMedia
+     *
+     * SEKARANG dijalankan di GitHub Pages,
+     * bukan Apps Script.
+     */
+
+
+    mediaStream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+
+          audio: {
+
+            channelCount: 1,
+
+            echoCancellation:
+              true,
+
+            noiseSuppression:
+              true,
+
+            autoGainControl:
+              true
+
+          }
+
+        });
+
+
+    log(
+      "Microphone berhasil diaktifkan."
+    );
+
+
+    /*
+     * Audio Context
+     */
+
+
+    audioContext =
+      new AudioContext();
+
+
+    log(
+      "Audio sample rate: " +
+      audioContext.sampleRate +
+      " Hz"
+    );
+
+
+    /*
+     * Source
+     */
+
+
+    microphoneSource =
+      audioContext
+        .createMediaStreamSource(
+          mediaStream
+        );
+
+
+    /*
+     * Processor
+     */
+
+
+    audioProcessor =
+      audioContext
+        .createScriptProcessor(
+          4096,
+          1,
+          1
+        );
+
+
+    /*
+     * Audio process
+     */
+
+
+    audioProcessor.onaudioprocess =
+      function(event) {
+
+
+        if (
+          !isMicrophoneActive
+        ) {
+
+          return;
+
+        }
+
+
+        /*
+         * Ambil data microphone
+         */
+
+
+        const inputData =
+          event
+            .inputBuffer
+            .getChannelData(0);
+
+
+        /*
+         * Convert Float32 → PCM16
+         */
+
+
+        const pcm16 =
+          convertFloat32ToPCM16(
+            inputData
+          );
+
+
+        /*
+         * Convert → Base64
+         */
+
+
+        const base64Audio =
+          arrayBufferToBase64(
+            pcm16.buffer
+          );
+
+
+        /*
+         * Kirim ke Gemini
+         */
+
+
+        if (
+          websocket &&
+          websocket.readyState ===
+          WebSocket.OPEN
+        ) {
+
+          const audioMessage = {
+
+            realtimeInput: {
+
+              audio: {
+
+                data:
+                  base64Audio,
+
+                mimeType:
+                  "audio/pcm;rate=16000"
+
+              }
+
+            }
+
+          };
+
+
+          websocket.send(
+            JSON.stringify(
+              audioMessage
+            )
+          );
+        }
+      };
+
+    /*
+     * Connect audio
+     */
+
+    microphoneSource.connect(
+      audioProcessor
+    );
+
+    audioProcessor.connect(
+      audioContext.destination
+    );
+
+    /*
+     * Aktif
+     */
+
+
+    isMicrophoneActive =
+      true;
+
+
+    document.getElementById(
+      "micButton"
+    ).innerText =
+      "🛑 Stop Microphone";
+
+
+    updateStatus(
+      "🎤 Microphone aktif"
+    );
+
+
+    log(
+      "🎤 Microphone aktif."
+    );
+
+  }
+
+
+  catch (error) {
+
+
+    log(
+      "Gagal mengakses microphone: " +
+      error.message
+    );
+
+
+    console.error(
+      "Microphone error:",
+      error
+    );
+
+  }
+
+}
+
+
+/*
+=====================================================
+STOP MICROPHONE
+=====================================================
+*/
+
+
+function stopMicrophone() {
+
+
+  isMicrophoneActive =
+    false;
+
+
+  /*
+   * Processor
+   */
+
+
+  if (
+    audioProcessor
+  ) {
+
+    audioProcessor.disconnect();
+
+    audioProcessor = null;
+
+  }
+
+
+  /*
+   * Source
+   */
+
+
+  if (
+    microphoneSource
+  ) {
+
+    microphoneSource.disconnect();
+
+    microphoneSource = null;
+
+  }
+
+
+  /*
+   * Media stream
+   */
+
+
+  if (
+    mediaStream
+  ) {
+
+
+    mediaStream
+      .getTracks()
+      .forEach(
+        function(track) {
+
+          track.stop();
+
+        }
+      );
+
+
+    mediaStream = null;
+
+  }
+
+
+  /*
+   * Audio context
+   */
+
+
+  if (
+    audioContext
+  ) {
+
+    audioContext.close();
+
+    audioContext = null;
+
+  }
+
+
+  /*
+   * Button
+   */
+
+
+  const micButton =
+    document.getElementById(
+      "micButton"
+    );
+
+
+  if (
+    micButton
+  ) {
+
+    micButton.innerText =
+      "🎤 Start Microphone";
+
+  }
+
+
+  if (
+    isConnected
+  ) {
+
+    updateStatus(
+      "Gemini Live siap 🎉"
+    );
+
+  }
+
+
+  log(
+    "🎤 Microphone dihentikan."
+  );
+
+}
+
+
+/*
+=====================================================
+FLOAT32 → PCM16
+=====================================================
+*/
+
+
+function convertFloat32ToPCM16(
+  float32Array
+) {
+
+
+  const buffer =
+    new Int16Array(
+      float32Array.length
+    );
+
+
+  for (
+    let i = 0;
+    i < float32Array.length;
+    i++
+  ) {
+
+
+    let sample =
+      Math.max(
+        -1,
+        Math.min(
+          1,
+          float32Array[i]
+        )
+      );
+
+
+    buffer[i] =
+      sample < 0
+        ? sample * 0x8000
+        : sample * 0x7FFF;
+
+  }
+
+
+  return buffer;
+
+}
+
+
+/*
+=====================================================
+ARRAY BUFFER → BASE64
+=====================================================
+*/
+
+
+function arrayBufferToBase64(
+  buffer
+) {
+
+
+  let binary = "";
+
+
+  const bytes =
+    new Uint8Array(
+      buffer
+    );
+
+
+  const chunkSize =
+    0x8000;
+
+
+  for (
+    let i = 0;
+    i < bytes.length;
+    i += chunkSize
+  ) {
+
+
+    const chunk =
+      bytes.subarray(
+        i,
+        Math.min(
+          i + chunkSize,
+          bytes.length
+        )
+      );
+
+
+    binary +=
+      String.fromCharCode(
+        ...chunk
+      );
+
+  }
+
+
+  return btoa(
+    binary
+  );
+
+}
+
+
+/*
+=====================================================
+DISCONNECT GEMINI
+=====================================================
+*/
+
+
+function disconnectGemini() {
+
+
+  stopMicrophone();
+
+
+  if (
+    websocket
+  ) {
+
+    websocket.close();
+
+    websocket = null;
+
+  }
+
+
+  isConnected =
+    false;
+
+
+  document.getElementById(
+    "connectButton"
+  ).disabled = false;
+
+
+  document.getElementById(
+    "disconnectButton"
+  ).disabled = true;
+
+
+  document.getElementById(
+    "micButton"
+  ).disabled = true;
+
+
+  updateStatus(
+    "Belum terhubung."
+  );
+
+
+  log(
+    "Gemini Live session dihentikan."
+  );
+
+}
+
+</script>
+
+</body>
+
+</html>
