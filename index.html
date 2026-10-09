@@ -94,6 +94,32 @@
       letter-spacing: .7px;
     }
 
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .nav-link {
+      min-height: 40px;
+      padding: 8px 13px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: .15s;
+    }
+
+    .nav-link:hover { color: var(--purple); background: var(--purple-light); }
+    .nav-link.active {
+      color: var(--purple-dark);
+      background: var(--purple-light);
+      border-color: #e5e2ff;
+    }
+
     .top-actions {
       display: flex;
       align-items: center;
@@ -320,6 +346,38 @@
     .page-heading h1 { margin: 10px 0 5px; font-size: 31px; letter-spacing: -.8px; }
     .page-heading p { margin: 0; color: var(--muted); }
 
+    .placeholder-panel {
+      padding: 30px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .placeholder-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 15px;
+      border-radius: 16px;
+      background: var(--purple-light);
+      font-size: 25px;
+    }
+
+    .placeholder-panel h2 { margin: 0 0 6px; font-size: 19px; }
+    .placeholder-panel p { max-width: 650px; margin: 0; color: var(--muted); }
+    .placeholder-note {
+      display: inline-flex;
+      margin-top: 18px;
+      padding: 6px 10px;
+      border-radius: 9px;
+      color: var(--purple-dark);
+      background: var(--purple-light);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
     .back-link {
       padding: 0;
       margin-bottom: 13px;
@@ -508,17 +566,22 @@
     }
 
     @media (max-width: 850px) {
+      .topbar-inner { flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
+      .main-nav { order: 3; width: 100%; justify-content: center; }
       .hero { grid-template-columns: 1fr .65fr; padding: 30px; }
       .session-layout { grid-template-columns: 1fr; }
       .feature-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 580px) {
-      .topbar-inner { min-height: 64px; padding: 0 14px; }
+      .topbar-inner { min-height: 64px; padding: 9px 14px; }
       .brand { font-size: 16px; }
       .brand-mark { width: 35px; height: 35px; }
       .brand small { font-size: 8px; }
+      .main-nav { justify-content: flex-start; gap: 2px; overflow-x: auto; padding-bottom: 2px; }
+      .nav-link { min-height: 36px; padding: 7px 10px; font-size: 12px; }
       .connection { padding: 6px 8px; font-size: 10px; }
+      .placeholder-panel { padding: 22px; }
       .main { padding: 20px 14px 40px; }
       .hero { grid-template-columns: 1fr; padding: 25px 21px; gap: 5px; }
       .hero h1 { font-size: 34px; }
@@ -544,6 +607,13 @@
       <span class="brand-mark">S</span>
       <span>SpeakMate AI<small>YOUR AI COMMUNICATION COACH</small></span>
     </button>
+
+    <nav class="main-nav" aria-label="Navigasi utama">
+      <button class="nav-link active" data-page="dashboard" onclick="showPage('dashboard')" aria-current="page">Home</button>
+      <button class="nav-link" data-page="modes" onclick="showPage('modes')">Practice</button>
+      <button class="nav-link" data-page="progress" onclick="showPage('progress')">Progress</button>
+      <button class="nav-link" data-page="history" onclick="showPage('history')">History</button>
+    </nav>
 
     <div class="top-actions">
       <div class="connection" id="connectionPill">
@@ -661,17 +731,47 @@
         <span class="mode-footer"><span>Latihan berbicara</span><span>→</span></span>
       </button>
 
-      <button class="mode-card" onclick="startPractice('professional')">
-        <span class="mode-icon green-bg">🤝</span>
-        <h3>Professional Communication</h3>
-        <span class="translation">Komunikasi profesional</span>
-        <p>Practice workplace discussions, meetings, and professional conversations.</p>
-        <span class="mode-footer"><span>Asah kemampuanmu</span><span>→</span></span>
+      <button class="mode-card" type="button" disabled aria-label="Debate Mode segera hadir">
+        <span class="mode-icon green-bg">⚖️</span>
+        <h3>Debate Mode</h3>
+        <span class="translation">Latihan debat bahasa Inggris</span>
+        <p>Practice defending a position, responding to counterarguments, and explaining your reasoning.</p>
+        <span class="mode-footer"><span>Segera hadir pada tahap berikutnya</span><span>✦</span></span>
       </button>
     </div>
   </section>
 
-  <!-- PAGE 3: PRACTICE SESSION -->
+  <!-- PAGE 3: PROGRESS (SKELETON FOR PHASE 1) -->
+  <section class="page" id="page-progress">
+    <div class="page-heading">
+      <span class="eyebrow">YOUR LEARNING JOURNEY</span>
+      <h1>Your Progress</h1>
+      <p>Ringkasan perkembangan kemampuan bahasa Inggrismu akan ditampilkan di sini.</p>
+    </div>
+    <div class="placeholder-panel">
+      <div class="placeholder-icon">📈</div>
+      <h2>Progress tracking is coming soon</h2>
+      <p>Di tahap berikutnya, halaman ini akan menampilkan perkembangan skor Grammar, Vocabulary, Naturalness, Confidence, dan Pronunciation dari sesi latihanmu. Belum ada skor yang ditampilkan karena fitur evaluasi belum dibuat.</p>
+      <span class="placeholder-note">Tahap 1 · Kerangka halaman</span>
+    </div>
+  </section>
+
+  <!-- PAGE 4: HISTORY (SKELETON FOR PHASE 1) -->
+  <section class="page" id="page-history">
+    <div class="page-heading">
+      <span class="eyebrow">YOUR PRACTICE RECORD</span>
+      <h1>Practice History</h1>
+      <p>Temukan kembali sesi latihan dan evaluasi yang pernah kamu lakukan.</p>
+    </div>
+    <div class="placeholder-panel">
+      <div class="placeholder-icon">🕘</div>
+      <h2>Your practice history will appear here</h2>
+      <p>Di tahap berikutnya, riwayat latihan dapat memuat tanggal, mode latihan, ringkasan percakapan, hasil evaluasi, dan rekomendasi. Penyimpanan riwayat belum diaktifkan pada tahap ini.</p>
+      <span class="placeholder-note">Tahap 1 · Kerangka halaman</span>
+    </div>
+  </section>
+
+  <!-- PAGE 5: PRACTICE SESSION -->
   <section class="page" id="page-session">
     <button class="back-link" onclick="leavePractice()">← Kembali ke pilihan latihan</button>
 
@@ -850,6 +950,17 @@ Selamat datang di sesi latihan.
 
     const target = document.getElementById("page-" + name);
     if (target) target.classList.add("active");
+
+    const activeNavPage = name === "session" ? "modes" : name;
+    document.querySelectorAll(".nav-link").forEach(link => {
+      const isActive = link.dataset.page === activeNavPage;
+      link.classList.toggle("active", isActive);
+      if (isActive) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
