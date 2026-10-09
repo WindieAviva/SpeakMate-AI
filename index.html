@@ -440,6 +440,108 @@
       font-size: 12px;
     }
 
+    /* Practice configuration — reuses the existing SpeakMate palette */
+    .config-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(260px, .8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .config-panel {
+      min-width: 0;
+      padding: 22px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .config-panel h2 { margin: 0 0 5px; font-size: 17px; }
+    .config-help { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+
+    .language-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .choice-card {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: white;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      transition: .15s;
+    }
+
+    .choice-card:hover { border-color: #c9c5ff; }
+    .choice-card.selected {
+      border-color: var(--purple);
+      background: var(--purple-light);
+      box-shadow: 0 0 0 1px var(--purple);
+    }
+
+    .choice-flag { font-size: 25px; line-height: 1; }
+    .choice-copy { min-width: 0; flex: 1; }
+    .choice-copy strong { display: block; font-size: 13px; }
+    .choice-copy small { display: block; color: var(--muted); font-size: 11px; }
+    .choice-check { color: var(--purple); font-size: 16px; font-weight: 800; }
+
+    .level-list, .explanation-list { display: grid; gap: 9px; }
+    .level-choice, .explanation-choice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+    .level-choice.selected, .explanation-choice.selected {
+      border-color: var(--purple);
+      background: var(--purple-light);
+    }
+    .choice-radio {
+      width: 16px;
+      height: 16px;
+      margin-top: 3px;
+      flex: 0 0 16px;
+      border: 1.5px solid #b7b8c9;
+      border-radius: 50%;
+    }
+    .selected .choice-radio { border: 5px solid var(--purple); }
+    .level-choice strong, .explanation-choice strong { display: block; font-size: 13px; }
+    .level-choice small, .explanation-choice small { display: block; color: var(--muted); font-size: 11px; }
+    .config-summary {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid #e5e2ff;
+      border-radius: 12px;
+      background: #f8f7ff;
+    }
+    .config-summary-label { color: var(--muted); font-size: 11px; }
+    .config-summary strong { display: block; margin-top: 3px; }
+    .config-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+    @media (max-width: 850px) {
+      .config-layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 580px) {
+      .config-panel { padding: 17px; }
+      .language-grid { grid-template-columns: 1fr; }
+    }
+
     .session-layout {
       display: grid;
       grid-template-columns: minmax(0,1.45fr) minmax(270px,.75fr);
@@ -741,7 +843,86 @@
     </div>
   </section>
 
-  <!-- PAGE 3: PROGRESS (SKELETON FOR PHASE 1) -->
+  <!-- PAGE 3: PRACTICE CONFIGURATION -->
+  <section class="page" id="page-config">
+    <button class="back-link" onclick="showPage('modes')">← Kembali ke pilihan latihan</button>
+
+    <div class="page-heading">
+      <span class="eyebrow">PERSONALIZE YOUR SESSION</span>
+      <h1>Siapkan latihanmu</h1>
+      <p id="configModeDescription">Atur bahasa dan tingkat kemampuan sebelum mulai berlatih bersama AI.</p>
+    </div>
+
+    <div class="config-layout">
+      <div class="config-panel">
+        <h2>1. Bahasa latihan</h2>
+        <p class="config-help">Pilih bahasa yang akan kamu gunakan saat berbicara dengan AI.</p>
+        <div class="language-grid" role="group" aria-label="Pilih bahasa latihan">
+          <button type="button" class="choice-card" data-language="id" onclick="selectPracticeLanguage('id')" aria-pressed="false">
+            <span class="choice-flag" aria-hidden="true">🇮🇩</span>
+            <span class="choice-copy"><strong>Bahasa Indonesia</strong><small>Latihan dalam Bahasa Indonesia</small></span>
+            <span class="choice-check" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="choice-card selected" data-language="en" onclick="selectPracticeLanguage('en')" aria-pressed="true">
+            <span class="choice-flag" aria-hidden="true">🇬🇧</span>
+            <span class="choice-copy"><strong>English</strong><small>Practice in English</small></span>
+            <span class="choice-check" aria-hidden="true">✓</span>
+          </button>
+          <button type="button" class="choice-card" data-language="ja" onclick="selectPracticeLanguage('ja')" aria-pressed="false">
+            <span class="choice-flag" aria-hidden="true">🇯🇵</span>
+            <span class="choice-copy"><strong>日本語 · Japanese</strong><small>日本語で会話を練習</small></span>
+            <span class="choice-check" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="choice-card" data-language="zh" onclick="selectPracticeLanguage('zh')" aria-pressed="false">
+            <span class="choice-flag" aria-hidden="true">🇨🇳</span>
+            <span class="choice-copy"><strong>中文 · Mandarin</strong><small>使用普通话练习交流</small></span>
+            <span class="choice-check" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <h2 style="margin-top:24px">2. Level kemampuan</h2>
+        <p class="config-help">AI akan menyesuaikan kosakata dan tingkat kesulitan percakapan.</p>
+        <div class="level-list" role="group" aria-label="Pilih level kemampuan">
+          <button type="button" class="level-choice selected" data-level="Beginner" onclick="selectPracticeLevel('Beginner')" aria-pressed="true">
+            <span class="choice-radio" aria-hidden="true"></span><span><strong>Beginner</strong><small>Kalimat sederhana, tempo lebih santai, dan bantuan lebih banyak.</small></span>
+          </button>
+          <button type="button" class="level-choice" data-level="Intermediate" onclick="selectPracticeLevel('Intermediate')" aria-pressed="false">
+            <span class="choice-radio" aria-hidden="true"></span><span><strong>Intermediate</strong><small>Percakapan lebih bervariasi dengan sedikit bantuan.</small></span>
+          </button>
+          <button type="button" class="level-choice" data-level="Advanced" onclick="selectPracticeLevel('Advanced')" aria-pressed="false">
+            <span class="choice-radio" aria-hidden="true"></span><span><strong>Advanced</strong><small>Diskusi lebih kompleks dan respons yang lebih mendalam.</small></span>
+          </button>
+        </div>
+      </div>
+
+      <aside class="config-panel">
+        <h2>3. Bahasa penjelasan AI</h2>
+        <p class="config-help">Pilih bahasa untuk penjelasan atau bantuan tambahan dari AI.</p>
+        <div class="explanation-list" role="group" aria-label="Pilih bahasa penjelasan">
+          <button type="button" class="explanation-choice selected" data-explanation="id" onclick="selectExplanationLanguage('id')" aria-pressed="true">
+            <span class="choice-radio" aria-hidden="true"></span><span><strong>Bahasa Indonesia</strong><small>AI berlatih dalam bahasa pilihanmu, lalu menjelaskan dalam Bahasa Indonesia jika diperlukan.</small></span>
+          </button>
+          <button type="button" class="explanation-choice" data-explanation="practice" onclick="selectExplanationLanguage('practice')" aria-pressed="false">
+            <span class="choice-radio" aria-hidden="true"></span><span><strong>Bahasa latihan</strong><small>Penjelasan tetap menggunakan bahasa yang sedang dipelajari.</small></span>
+          </button>
+          <button type="button" class="explanation-choice" data-explanation="both" onclick="selectExplanationLanguage('both')" aria-pressed="false">
+            <span class="choice-radio" aria-hidden="true"></span><span><strong>Campuran keduanya</strong><small>Penjelasan menggunakan bahasa latihan dan Bahasa Indonesia.</small></span>
+          </button>
+        </div>
+
+        <div class="config-summary" aria-live="polite">
+          <div class="config-summary-label">Ringkasan pengaturan</div>
+          <strong id="configSummaryLanguage">English · Beginner</strong>
+          <div id="configSummaryExplanation" class="config-summary-label">Penjelasan: Bahasa Indonesia</div>
+        </div>
+        <div class="config-actions">
+          <button class="btn primary full" type="button" onclick="beginConfiguredPractice()">Mulai latihan <span>→</span></button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- PAGE 4: PROGRESS (SKELETON FOR PHASE 1) -->
   <section class="page" id="page-progress">
     <div class="page-heading">
       <span class="eyebrow">YOUR LEARNING JOURNEY</span>
@@ -756,7 +937,7 @@
     </div>
   </section>
 
-  <!-- PAGE 4: HISTORY (SKELETON FOR PHASE 1) -->
+  <!-- PAGE 5: HISTORY (SKELETON FOR PHASE 1) -->
   <section class="page" id="page-history">
     <div class="page-heading">
       <span class="eyebrow">YOUR PRACTICE RECORD</span>
@@ -771,7 +952,7 @@
     </div>
   </section>
 
-  <!-- PAGE 5: PRACTICE SESSION -->
+  <!-- PAGE 6: PRACTICE SESSION -->
   <section class="page" id="page-session">
     <button class="back-link" onclick="leavePractice()">← Kembali ke pilihan latihan</button>
 
@@ -887,6 +1068,20 @@ Selamat datang di sesi latihan.
   let playbackContext = null;
   let nextPlaybackTime = 0;
   let selectedMode = "conversation";
+  let selectedLanguage = "en";
+  let selectedLevel = "Beginner";
+  let selectedExplanationLanguage = "id";
+  const practiceLanguages = {
+    id: { label: "Bahasa Indonesia", instruction: "Indonesian" },
+    en: { label: "English", instruction: "English" },
+    ja: { label: "Japanese (日本語)", instruction: "Japanese" },
+    zh: { label: "Mandarin (中文)", instruction: "Mandarin Chinese (普通话)" }
+  };
+  const explanationLabels = {
+    id: "Bahasa Indonesia",
+    practice: "Bahasa latihan",
+    both: "Campuran Bahasa Indonesia dan bahasa latihan"
+  };
   let tokenRequestPending = false;
   let activeTokenCallback = null;
 
@@ -969,14 +1164,66 @@ Selamat datang di sesi latihan.
     if (!modes[mode]) return;
 
     selectedMode = mode;
+    document.getElementById("configModeDescription").textContent =
+      modes[mode].title + " · " + modes[mode].subtitle +
+      " Pilih bahasa dan level sebelum memulai.";
+    updatePracticeConfigSummary();
+    showPage("config");
+  }
 
-    document.getElementById("sessionTitle").textContent = modes[mode].title;
-    document.getElementById("sessionSubtitle").textContent = modes[mode].subtitle;
-    document.getElementById("sessionTag").textContent = modes[mode].tag;
+  function selectPracticeLanguage(language) {
+    if (!practiceLanguages[language]) return;
+    selectedLanguage = language;
+    document.querySelectorAll("[data-language]").forEach(button => {
+      const selected = button.dataset.language === language;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+      button.querySelector(".choice-check").textContent = selected ? "✓" : "";
+    });
+    updatePracticeConfigSummary();
+  }
 
+  function selectPracticeLevel(level) {
+    if (!["Beginner", "Intermediate", "Advanced"].includes(level)) return;
+    selectedLevel = level;
+    document.querySelectorAll("[data-level]").forEach(button => {
+      const selected = button.dataset.level === level;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    updatePracticeConfigSummary();
+  }
+
+  function selectExplanationLanguage(language) {
+    if (!explanationLabels[language]) return;
+    selectedExplanationLanguage = language;
+    document.querySelectorAll("[data-explanation]").forEach(button => {
+      const selected = button.dataset.explanation === language;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    updatePracticeConfigSummary();
+  }
+
+  function updatePracticeConfigSummary() {
+    document.getElementById("configSummaryLanguage").textContent =
+      practiceLanguages[selectedLanguage].label + " · " + selectedLevel;
+    document.getElementById("configSummaryExplanation").textContent =
+      "Penjelasan: " + explanationLabels[selectedExplanationLanguage];
+  }
+
+  function beginConfiguredPractice() {
+    if (!modes[selectedMode]) return;
+
+    document.getElementById("sessionTitle").textContent = modes[selectedMode].title;
+    document.getElementById("sessionSubtitle").textContent = modes[selectedMode].subtitle;
+    document.getElementById("sessionTag").textContent = modes[selectedMode].tag;
     document.getElementById("conversationLog").textContent =
       "Welcome to SpeakMate AI.\n" +
-      "Mode: " + modes[mode].title + "\n\n" +
+      "Mode: " + modes[selectedMode].title + "\n" +
+      "Practice language: " + practiceLanguages[selectedLanguage].label + "\n" +
+      "Level: " + selectedLevel + "\n" +
+      "AI explanations: " + explanationLabels[selectedExplanationLanguage] + "\n\n" +
       "1. Hubungkan Gemini.\n" +
       "2. Aktifkan microphone.\n" +
       "3. Mulai berbicara bersama AI.";
@@ -984,9 +1231,9 @@ Selamat datang di sesi latihan.
     setVoiceState(
       "ready",
       "Ready to practice?",
-      "Hubungkan Gemini, lalu aktifkan microphone untuk memulai latihan."
+      "Pengaturan: " + practiceLanguages[selectedLanguage].label + " · " + selectedLevel +
+      ". Hubungkan Gemini, lalu aktifkan microphone untuk memulai latihan."
     );
-
     showPage("session");
   }
 
@@ -1153,8 +1400,25 @@ Selamat datang di sesi latihan.
               text:
                 "You are SpeakMate AI, a friendly voice-based communication " +
                 "coach. " + modes[selectedMode].instruction +
-                " Adapt to the user's language preference. For your first " +
-                "response, greet the user briefly and begin the selected mode."
+                " The user's selected practice language is " +
+                practiceLanguages[selectedLanguage].instruction + ". " +
+                "Speak primarily in that language throughout the session. " +
+                "The user's proficiency level is " + selectedLevel + ". " +
+                (selectedLevel === "Beginner"
+                  ? "Use simple vocabulary, shorter sentences, and a supportive pace. "
+                  : selectedLevel === "Intermediate"
+                    ? "Use everyday natural language with moderate complexity. "
+                    : "Use nuanced vocabulary and more complex, natural conversation. ") +
+                "For explanations, use " +
+                (selectedExplanationLanguage === "id"
+                  ? "Indonesian"
+                  : selectedExplanationLanguage === "practice"
+                    ? practiceLanguages[selectedLanguage].instruction
+                    : practiceLanguages[selectedLanguage].instruction + " and Indonesian") +
+                ". If the user is learning Japanese, use natural Japanese; if Mandarin, use Mandarin Chinese. " +
+                "Do not switch the practice language just because the user uses a different language, " +
+                "unless they explicitly request a language change. For your first response, " +
+                "greet the user briefly in the selected practice language and begin the selected mode."
             }]
           }
         }
