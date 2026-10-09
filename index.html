@@ -1,1639 +1,1728 @@
+
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="id">
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>SpeakMate AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <title>SpeakMate AI — Communication Coach</title>
 
   <style>
+    :root {
+      --primary: #635bdb;
+      --primary-dark: #5047c5;
+      --primary-light: #eeedff;
+      --blue: #4b8df8;
+      --text: #20213a;
+      --muted: #777b91;
+      --border: #e9eaf2;
+      --surface: #ffffff;
+      --background: #f8f9fd;
+      --success: #16865b;
+      --danger: #c83d53;
+      --radius: 18px;
+      --shadow: 0 8px 28px rgba(37, 39, 80, 0.055);
+    }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f7fb;
-      color: #222;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 40px 20px;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .header h1 {
-      font-size: 36px;
-      margin-bottom: 10px;
-    }
-
-    .header p {
-      color: #666;
-    }
-
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 25px;
-      margin-bottom: 20px;
-      box-shadow: 0 5px 20px rgba(0,0,0,.08);
+      background: var(--background);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
     }
 
     button {
-      border: none;
-      border-radius: 10px;
-      padding: 13px 20px;
-      font-size: 15px;
-      cursor: pointer;
-      margin-right: 8px;
-      margin-bottom: 8px;
+      font: inherit;
     }
 
-    .btn-primary {
-      background: #4f46e5;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #4338ca;
-    }
-
-    .btn-danger {
-      background: #dc2626;
-      color: white;
+    button:focus-visible {
+      outline: 3px solid #aaa5ff;
+      outline-offset: 3px;
     }
 
     button:disabled {
-      opacity: .5;
+      opacity: .55;
       cursor: not-allowed;
     }
 
-    .status {
-      padding: 12px;
-      border-radius: 10px;
-      background: #f3f4f6;
-      margin-bottom: 15px;
+    .app {
+      min-height: 100vh;
     }
 
-    .status.connected {
-      background: #dcfce7;
-      color: #166534;
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
     }
 
-    .status.error {
-      background: #fee2e2;
-      color: #991b1b;
+    .topbar-inner {
+      max-width: 1180px;
+      min-height: 72px;
+      margin: auto;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
     }
 
-    .mic-status {
-      margin-top: 15px;
-      font-weight: bold;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: -.5px;
     }
 
-    .log {
-      background: #111827;
-      color: #d1d5db;
-      padding: 15px;
-      border-radius: 10px;
-      min-height: 220px;
-      max-height: 400px;
+    .brand-mark {
+      width: 39px;
+      height: 39px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--blue));
+      border-radius: 13px;
+      font-size: 20px;
+    }
+
+    .brand small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .5px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .connection-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      background: white;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .connection-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #b4b6c5;
+    }
+
+    .connection-pill.connected {
+      color: var(--success);
+      background: #effaf5;
+      border-color: #d3f1e2;
+    }
+
+    .connection-pill.connected .connection-dot {
+      background: #20a66f;
+    }
+
+    .main {
+      max-width: 1180px;
+      margin: auto;
+      padding: 36px 28px 64px;
+    }
+
+    .welcome {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.5fr .7fr;
+      align-items: center;
+      gap: 24px;
+      padding: 37px 40px;
+      background: linear-gradient(115deg, #f0efff 0%, #f7f8ff 60%, #eef6ff 100%);
+      border: 1px solid #e6e5ff;
+      border-radius: 24px;
+      margin-bottom: 36px;
+    }
+
+    .welcome::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      right: -65px;
+      top: -100px;
+      border: 35px solid rgba(99, 91, 219, .06);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--primary-dark);
+      background: white;
+      border: 1px solid #e5e2ff;
+      border-radius: 30px;
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .4px;
+    }
+
+    .welcome h1 {
+      max-width: 620px;
+      margin: 16px 0 12px;
+      font-size: clamp(29px, 4vw, 43px);
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+    }
+
+    .gradient-text {
+      color: var(--primary);
+    }
+
+    .welcome p {
+      max-width: 570px;
+      color: #686b85;
+      margin: 0 0 23px;
+      line-height: 1.8;
+    }
+
+    .welcome-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      min-height: 43px;
+      padding: 11px 17px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .15s, background .15s;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      color: white;
+      background: var(--primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: white;
+      border-color: var(--border);
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      background: #fff1f3;
+      border-color: #f7d9df;
+    }
+
+    .welcome-art {
+      position: relative;
+      z-index: 1;
+      min-height: 185px;
+      display: grid;
+      place-items: center;
+    }
+
+    .orb {
+      width: 150px;
+      height: 150px;
+      display: grid;
+      place-items: center;
+      border-radius: 44px;
+      transform: rotate(-7deg);
+      background: linear-gradient(145deg, #736bea, #8dacf9);
+      box-shadow: 0 22px 50px rgba(99, 91, 219, .22);
+    }
+
+    .orb-inner {
+      width: 115px;
+      height: 115px;
+      display: grid;
+      place-items: center;
+      transform: rotate(7deg);
+      border: 1px solid rgba(255,255,255,.5);
+      border-radius: 36px;
+      background: rgba(255,255,255,.16);
+      color: white;
+      font-size: 51px;
+    }
+
+    .floating-label {
+      position: absolute;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: white;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .floating-one {
+      left: 0;
+      top: 22px;
+    }
+
+    .floating-two {
+      right: 0;
+      bottom: 15px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -.6px;
+    }
+
+    .section-heading p {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
+    .section-kicker {
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .mode-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 232px;
+      padding: 21px;
+      text-align: left;
+      color: var(--text);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(30, 35, 80, .015);
+      transition: border-color .18s, transform .18s, box-shadow .18s;
+    }
+
+    .mode-card:hover {
+      transform: translateY(-3px);
+      border-color: #c9c5ff;
+      box-shadow: var(--shadow);
+    }
+
+    .mode-card.selected {
+      border: 2px solid var(--primary);
+      padding: 20px;
+      background: #fbfaff;
+      box-shadow: 0 0 0 3px rgba(99,91,219,.08);
+    }
+
+    .mode-icon {
+      width: 47px;
+      height: 47px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 14px;
+      font-size: 23px;
+    }
+
+    .icon-purple { background: #eeedff; }
+    .icon-blue { background: #eaf3ff; }
+    .icon-orange { background: #fff2e5; }
+    .icon-green { background: #e6f8ef; }
+
+    .mode-card h3 {
+      margin: 0 0 5px;
+      font-size: 15px;
+      letter-spacing: -.2px;
+    }
+
+    .mode-card .subtitle {
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 9px;
+    }
+
+    .mode-card p {
+      flex: 1;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+      margin: 0 0 15px;
+    }
+
+    .mode-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .selection-note {
+      margin-top: 13px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .practice-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(280px, .75fr);
+      gap: 20px;
+      margin-top: 40px;
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 10px rgba(30,35,80,.02);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .panel-header p {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 3px 0 0;
+    }
+
+    .panel-body {
+      padding: 22px;
+    }
+
+    .selected-mode-label {
+      display: inline-block;
+      padding: 5px 9px;
+      color: var(--primary-dark);
+      background: var(--primary-light);
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .voice-stage {
+      min-height: 235px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 12px;
+      text-align: center;
+      background: linear-gradient(180deg, #fcfbff, #f8f9ff);
+      border: 1px solid #efeffa;
+      border-radius: 15px;
+    }
+
+    .voice-orb {
+      width: 90px;
+      height: 90px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      color: white;
+      font-size: 33px;
+      background: linear-gradient(145deg, #736bea, #6aa4f6);
+      box-shadow: 0 12px 30px rgba(99,91,219,.2);
+    }
+
+    .voice-orb.listening {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99,91,219,.24); }
+      50% { box-shadow: 0 0 0 15px rgba(99,91,219,0); }
+    }
+
+    .voice-stage h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+
+    .voice-stage p {
+      max-width: 340px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .voice-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    .microphone-status {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .conversation-log {
+      min-height: 170px;
+      max-height: 290px;
       overflow-y: auto;
-      font-family: monospace;
-      font-size: 13px;
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f7f8fc;
+      border: 1px solid var(--border);
+      color: #565a70;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.8;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
-  </style>
+    .info-list {
+      display: grid;
+      gap: 16px;
+    }
 
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .info-icon {
+      width: 37px;
+      height: 37px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--primary-light);
+      font-size: 17px;
+    }
+
+    .info-item h4 {
+      margin: 0 0 3px;
+      font-size: 13px;
+    }
+
+    .info-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .notice {
+      margin-top: 20px;
+      padding: 13px;
+      border: 1px solid #e8e6ff;
+      border-radius: 12px;
+      background: #f7f6ff;
+      color: #65618f;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .footer {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .mode-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .welcome {
+        grid-template-columns: 1fr .55fr;
+        padding: 30px;
+      }
+
+      .practice-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .topbar-inner {
+        min-height: 64px;
+        padding: 0 16px;
+      }
+
+      .brand {
+        font-size: 17px;
+      }
+
+      .brand-mark {
+        width: 35px;
+        height: 35px;
+      }
+
+      .connection-pill {
+        padding: 6px 8px;
+        font-size: 10px;
+      }
+
+      .main {
+        padding: 22px 15px 40px;
+      }
+
+      .welcome {
+        grid-template-columns: 1fr;
+        padding: 25px 22px;
+        border-radius: 19px;
+      }
+
+      .welcome h1 {
+        font-size: 32px;
+      }
+
+      .welcome-art {
+        min-height: 145px;
+      }
+
+      .orb {
+        width: 110px;
+        height: 110px;
+        border-radius: 32px;
+      }
+
+      .orb-inner {
+        width: 85px;
+        height: 85px;
+        border-radius: 25px;
+        font-size: 37px;
+      }
+
+      .floating-one { left: 12%; top: 5px; }
+      .floating-two { right: 10%; bottom: 3px; }
+
+      .section-heading {
+        align-items: flex-start;
+      }
+
+      .section-heading h2 {
+        font-size: 20px;
+      }
+
+      .mode-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .mode-card {
+        min-height: 0;
+      }
+
+      .mode-icon {
+        margin-bottom: 12px;
+      }
+
+      .panel-header,
+      .panel-body {
+        padding: 17px;
+      }
+
+      .voice-stage {
+        min-height: 215px;
+      }
+    }
+  </style>
 </head>
 
-
 <body>
+<div class="app">
 
-  <div class="container">
-
-    <div class="header">
-
-      <h1>🎙️ SpeakMate AI</h1>
-
-      <p>
-        AI English Speaking Coach & Interview Simulator
-      </p>
-
-    </div>
-
-
-    <!-- GEMINI -->
-
-    <div class="card">
-
-      <h2>🤖 Gemini Live</h2>
-
-      <div
-        id="connectionStatus"
-        class="status"
-      >
-        🔴 Disconnected
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <div>
+          SpeakMate AI
+          <small>YOUR AI COMMUNICATION COACH</small>
+        </div>
       </div>
 
-
-      <button
-        id="connectButton"
-        class="btn-primary"
-        onclick="connectToGemini()"
-      >
-        Connect Gemini
-      </button>
-
-
-      <button
-        id="disconnectButton"
-        class="btn-danger"
-        onclick="disconnectGemini()"
-        disabled
-      >
-        Disconnect
-      </button>
-
+      <div class="topbar-right">
+        <div class="connection-pill" id="connectionPill">
+          <span class="connection-dot"></span>
+          <span id="connectionLabel">Belum terhubung</span>
+        </div>
+      </div>
     </div>
+  </header>
 
+  <main class="main">
 
-    <!-- MICROPHONE -->
+    <!-- DASHBOARD HERO -->
+    <section class="welcome">
+      <div>
+        <span class="eyebrow">✦ GENERATIVE AI · VOICE PRACTICE</span>
 
-    <div class="card">
+        <h1>
+          Speak with confidence.<br>
+          <span class="gradient-text">Grow every day.</span>
+        </h1>
 
-      <h2>🎤 Speaking Practice</h2>
+        <p>
+          Latih kemampuan komunikasimu bersama AI.
+          Practice conversations, prepare for interviews,
+          and become a more confident communicator.
+        </p>
 
-      <p>
-        Hubungkan Gemini terlebih dahulu,
-        kemudian aktifkan microphone dan mulai berbicara.
-      </p>
+        <div class="welcome-actions">
+          <button class="btn btn-primary" onclick="goToModes()">
+            Mulai latihan <span>→</span>
+          </button>
 
-
-      <button
-        id="micButton"
-        class="btn-primary"
-        onclick="toggleMicrophone()"
-        disabled
-      >
-        🎤 Start Microphone
-      </button>
-
-
-      <div
-        id="micStatus"
-        class="mic-status"
-      >
-        Microphone: OFF
+          <button class="btn btn-secondary" onclick="connectToGemini()"
+                  id="heroConnectButton">
+            ✦ Hubungkan AI
+          </button>
+        </div>
       </div>
 
-    </div>
+      <div class="welcome-art" aria-hidden="true">
+        <div class="floating-label floating-one">🎤 Voice practice</div>
+        <div class="orb">
+          <div class="orb-inner">✦</div>
+        </div>
+        <div class="floating-label floating-two">🤖 AI Coach</div>
+      </div>
+    </section>
 
+    <!-- PRACTICE MODES -->
+    <section id="practiceModes">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">CHOOSE YOUR PRACTICE</div>
+          <h2>What would you like to practice?</h2>
+          <p>Pilih mode latihan sesuai tujuan komunikasimu.</p>
+        </div>
+      </div>
 
-    <!-- LOG -->
+      <div class="mode-grid">
 
-    <div class="card">
+        <button class="mode-card selected"
+                data-mode="conversation"
+                onclick="selectMode('conversation')"
+                aria-pressed="true">
+          <div class="mode-icon icon-purple">💬</div>
+          <h3>Daily Conversation</h3>
+          <div class="subtitle">Percakapan sehari-hari</div>
+          <p>Practice natural conversations, express ideas, and build confidence.</p>
+          <div class="mode-footer">
+            <span>Start practicing</span><span>→</span>
+          </div>
+        </button>
 
-      <h2>📋 System Log</h2>
+        <button class="mode-card"
+                data-mode="interview"
+                onclick="selectMode('interview')"
+                aria-pressed="false">
+          <div class="mode-icon icon-blue">💼</div>
+          <h3>Interview Simulator</h3>
+          <div class="subtitle">Simulasi wawancara kerja</div>
+          <p>Prepare for job interviews with an AI interviewer and realistic questions.</p>
+          <div class="mode-footer">
+            <span>Build confidence</span><span>→</span>
+          </div>
+        </button>
 
-      <div
-        id="log"
-        class="log"
-      ></div>
+        <button class="mode-card"
+                data-mode="public-speaking"
+                onclick="selectMode('public-speaking')"
+                aria-pressed="false">
+          <div class="mode-icon icon-orange">🎤</div>
+          <h3>Public Speaking</h3>
+          <div class="subtitle">Berbicara di depan umum</div>
+          <p>Practice delivering ideas clearly, organizing thoughts, and presenting topics.</p>
+          <div class="mode-footer">
+            <span>Find your voice</span><span>→</span>
+          </div>
+        </button>
 
-    </div>
+        <button class="mode-card"
+                data-mode="professional"
+                onclick="selectMode('professional')"
+                aria-pressed="false">
+          <div class="mode-icon icon-green">🤝</div>
+          <h3>Professional Communication</h3>
+          <div class="subtitle">Komunikasi profesional</div>
+          <p>Practice meetings, workplace discussions, and professional situations.</p>
+          <div class="mode-footer">
+            <span>Communicate better</span><span>→</span>
+          </div>
+        </button>
 
-  </div>
+      </div>
 
+      <div class="selection-note" id="selectionNote" aria-live="polite">
+        Mode dipilih: Daily Conversation. Hubungkan AI untuk memulai sesi.
+      </div>
+    </section>
+
+    <!-- VOICE PRACTICE -->
+    <section class="practice-layout" id="practiceArea">
+
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Voice Practice</h2>
+            <p>Berlatih langsung dengan SpeakMate AI</p>
+          </div>
+          <span class="selected-mode-label" id="selectedModeLabel">
+            Daily Conversation
+          </span>
+        </div>
+
+        <div class="panel-body">
+          <div class="voice-stage">
+            <div class="voice-orb" id="voiceOrb">✦</div>
+            <h3 id="voiceHeading">Ready to practice?</h3>
+            <p id="voiceDescription">
+              Hubungkan AI, lalu aktifkan microphone untuk mulai berbicara.
+            </p>
+
+            <div class="voice-controls">
+              <button class="btn btn-primary"
+                      id="connectButton"
+                      onclick="connectToGemini()">
+                ✦ Connect AI
+              </button>
+
+              <button class="btn btn-primary"
+                      id="micButton"
+                      onclick="toggleMicrophone()"
+                      disabled>
+                🎤 Start microphone
+              </button>
+
+              <button class="btn btn-danger"
+                      id="disconnectButton"
+                      onclick="disconnectGemini()"
+                      disabled>
+                End session
+              </button>
+            </div>
+
+            <div class="microphone-status"
+                 id="micStatus"
+                 aria-live="polite">
+              Microphone: OFF
+            </div>
+          </div>
+
+          <div class="conversation-log"
+               id="conversationLog"
+               role="log"
+               aria-live="polite">Welcome to SpeakMate AI.
+Selamat datang di SpeakMate AI.
+
+1. Pilih mode latihan.
+2. Hubungkan Gemini.
+3. Aktifkan microphone dan mulai berbicara.</div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Your practice guide</h3>
+            <p>Panduan singkat untuk memulai</p>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div class="info-list">
+
+            <div class="info-item">
+              <div class="info-icon">🎯</div>
+              <div>
+                <h4>Choose a goal</h4>
+                <p>Pilih kemampuan komunikasi yang ingin kamu latih.</p>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-icon">🤖</div>
+              <div>
+                <h4>Connect with AI</h4>
+                <p>Hubungkan Gemini agar AI siap menemani latihanmu.</p>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-icon">🎙️</div>
+              <div>
+                <h4>Speak naturally</h4>
+                <p>Bicara melalui microphone dan dengarkan respons AI.</p>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-icon">🌱</div>
+              <div>
+                <h4>Keep improving</h4>
+                <p>Berlatih secara konsisten untuk mengembangkan skill komunikasimu.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="notice">
+            <strong>Tip:</strong> Gunakan microphone dan pastikan browser
+            memiliki izin akses audio. For the best experience, speak clearly
+            and practice in a quiet environment.
+          </div>
+        </div>
+      </aside>
+
+    </section>
+  </main>
+
+  <footer class="footer">
+    <strong>SpeakMate AI</strong> · Generative AI for Communication Skill Development
+    <br>
+    Practice today. Communicate with confidence tomorrow.
+  </footer>
+
+</div>
 
 <script>
+  // =====================================================
+  // CONFIGURATION — PERTAHANKAN URL TOKEN BRIDGE
+  // =====================================================
 
+  const APPS_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbx4wg8kv7krK1Qche47lpHzFsjN5Hn7EXSoCEE4Pae5wGcHk_9zCkYUKUoRPKST6BRL/exec";
 
-// =====================================================
-// CONFIGURATION
-// =====================================================
+  const MODEL_NAME = "gemini-3.8-live";
 
-const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbx4wg8kv7krK1Qche47lpHzFsjN5Hn7EXSoCEE4Pae5wGcHk_9zCkYUKUoRPKST6BRL/exec";
+  // =====================================================
+  // GLOBAL STATE
+  // =====================================================
 
-const MODEL_NAME =
-  "gemini-3.8-live";
+  let socket = null;
+  let audioContext = null;
+  let mediaStream = null;
+  let processor = null;
+  let microphoneActive = false;
+  let isGeminiConnected = false;
+  let audioChunkCount = 0;
+  let playbackContext = null;
+  let nextPlaybackTime = 0;
+  let selectedMode = "conversation";
+  let tokenRequestPending = false;
 
+  const modes = {
+    conversation: {
+      title: "Daily Conversation",
+      instruction:
+        "Act as a friendly conversation partner. " +
+        "Help the user practice everyday communication. " +
+        "Start with a brief friendly greeting and one simple question. " +
+        "Respond naturally to what the user says and ask one relevant " +
+        "follow-up question at a time. Keep spoken responses concise. " +
+        "Use the language the user is practicing or requests."
+    },
 
-// =====================================================
-// GLOBAL VARIABLES
-// =====================================================
+    interview: {
+      title: "Interview Simulator",
+      instruction:
+        "Act as a realistic professional job interviewer and English " +
+        "communication coach. Start by greeting the candidate and ask " +
+        "which job role they are applying for if it is not known. " +
+        "Ask one interview question at a time. Listen to the answer, " +
+        "respond briefly as an interviewer, and ask a relevant follow-up " +
+        "when appropriate. Do not ask every question at once. Be supportive " +
+        "but professional. Use concise spoken responses."
+    },
 
-let socket = null;
+    "public-speaking": {
+      title: "Public Speaking",
+      instruction:
+        "Act as a supportive public speaking coach. Help the user practice " +
+        "presenting ideas clearly and organizing a short speech. Start by " +
+        "greeting the user and offering a simple speaking topic. Let the " +
+        "user speak, then ask a relevant follow-up or give one concise " +
+        "suggestion about clarity, structure, or relevance. Do not claim " +
+        "to measure vocal traits you cannot reliably determine."
+    },
 
-let audioContext = null;
+    professional: {
+      title: "Professional Communication",
+      instruction:
+        "Act as a professional communication coach. Simulate workplace " +
+        "situations such as meetings, discussing ideas, asking for help, " +
+        "giving updates, and talking to colleagues. Start with a short " +
+        "realistic scenario and interact naturally, one turn at a time. " +
+        "Give concise, constructive suggestions when useful."
+    }
+  };
 
-let mediaStream = null;
+  // =====================================================
+  // UI HELPERS
+  // =====================================================
 
-let processor = null;
+  function addLog(message) {
+    const log = document.getElementById("conversationLog");
+    const time = new Date().toLocaleTimeString();
 
-let microphoneActive = false;
+    log.textContent +=
+      "\n[" + time + "] " + message;
 
-let isGeminiConnected = false;
-
-let audioChunkCount = 0;
-
-let playbackContext = null;
-
-let nextPlaybackTime = 0;
-
-
-// =====================================================
-// LOG
-// =====================================================
-
-function addLog(message) {
-
-  const log =
-    document.getElementById("log");
-
-  const time =
-    new Date().toLocaleTimeString();
-
-  log.textContent +=
-    "[" +
-    time +
-    "] " +
-    message +
-    "\n";
-
-  log.scrollTop =
-    log.scrollHeight;
-
-  console.log(message);
-
-}
-
-
-// =====================================================
-// CONNECTION STATUS
-// =====================================================
-
-function setConnectionStatus(
-  message,
-  type = ""
-) {
-
-  const status =
-    document.getElementById(
-      "connectionStatus"
-    );
-
-  status.textContent =
-    message;
-
-  status.className =
-    "status " + type;
-
-}
-
-
-// =====================================================
-// CONNECT GEMINI
-// =====================================================
-
-function connectToGemini() {
-
-  if (socket) {
-
-    addLog(
-      "WebSocket sudah aktif."
-    );
-
-    return;
-
+    log.scrollTop = log.scrollHeight;
+    console.log(message);
   }
 
-  addLog(
-    "Meminta token dari Apps Script..."
-  );
+  function setConnectionStatus(message, connected = false) {
+    document.getElementById("connectionLabel").textContent = message;
+    document.getElementById("connectionPill")
+      .classList.toggle("connected", connected);
+  }
 
-  requestEphemeralToken();
+  function setVoiceState(state, heading, description) {
+    const orb = document.getElementById("voiceOrb");
 
-}
+    orb.classList.toggle("listening", state === "listening");
 
+    document.getElementById("voiceHeading").textContent = heading;
+    document.getElementById("voiceDescription").textContent = description;
 
-// =====================================================
-// EPHEMERAL TOKEN
-// =====================================================
+    if (state === "listening") {
+      orb.textContent = "🎙️";
+    } else if (state === "speaking") {
+      orb.textContent = "🔊";
+    } else {
+      orb.textContent = "✦";
+    }
+  }
 
-function requestEphemeralToken() {
+  function goToModes() {
+    document.getElementById("practiceModes")
+      .scrollIntoView({ behavior: "smooth" });
+  }
 
-  const callbackName =
-    "speakMateTokenCallback_" +
-    Date.now();
+  function selectMode(mode) {
+    if (!modes[mode]) return;
 
+    selectedMode = mode;
 
-  const script =
-    document.createElement("script");
+    document.querySelectorAll(".mode-card").forEach(card => {
+      const active = card.dataset.mode === mode;
+      card.classList.toggle("selected", active);
+      card.setAttribute("aria-pressed", String(active));
+    });
 
+    document.getElementById("selectedModeLabel").textContent =
+      modes[mode].title;
 
-  window[callbackName] =
-    function(data) {
+    document.getElementById("selectionNote").textContent =
+      "Mode dipilih: " + modes[mode].title +
+      ". Hubungkan AI untuk memulai sesi.";
 
-      addLog(
-        "Response token diterima."
-      );
+    addLog("Mode latihan dipilih: " + modes[mode].title);
 
-
-      if (
-        !data ||
-        !data.success
-      ) {
-
-        addLog(
-          "Gagal mendapatkan token: " +
-          (
-            data &&
-            data.error
-              ? data.error
-              : "Unknown error"
-          )
-        );
-
-
-        setConnectionStatus(
-          "🔴 Gagal mendapatkan token",
-          "error"
-        );
-
-
-        cleanup();
-
-        return;
-
-      }
-
-
-      addLog(
-        "Token berhasil diterima."
-      );
-
-
-      cleanup();
-
-
-      startGeminiSession(
-        data.token
-      );
-
-    };
-
-
-  script.onerror =
-    function() {
-
-      addLog(
-        "Gagal menghubungi Apps Script."
-      );
-
-
-      setConnectionStatus(
-        "🔴 Gagal menghubungi server",
-        "error"
-      );
-
-
-      cleanup();
-
-    };
-
-
-  script.src =
-    APPS_SCRIPT_URL +
-    "?bridge=1&callback=" +
-    encodeURIComponent(
-      callbackName
+    setVoiceState(
+      "ready",
+      "Ready to practice?",
+      "Mode " + modes[mode].title +
+      " dipilih. Hubungkan AI, lalu aktifkan microphone."
     );
 
-
-  document.body.appendChild(
-    script
-  );
-
-
-  function cleanup() {
-
-    delete window[
-      callbackName
-    ];
-
-
-    if (
-      script.parentNode
-    ) {
-
-      script.parentNode.removeChild(
-        script
+    if (isGeminiConnected) {
+      addLog(
+        "Mode berubah. Putuskan koneksi lalu hubungkan kembali " +
+        "agar instruksi mode baru diterapkan."
       );
+    }
+  }
 
+  // =====================================================
+  // EPHEMERAL TOKEN — JSONP TOKEN BRIDGE
+  // =====================================================
+
+  function connectToGemini() {
+    if (socket || tokenRequestPending) {
+      addLog("Koneksi sedang aktif atau sedang diproses.");
+      return;
     }
 
+    tokenRequestPending = true;
+
+    document.getElementById("connectButton").disabled = true;
+    document.getElementById("heroConnectButton").disabled = true;
+
+    setConnectionStatus("Menghubungkan...");
+    setVoiceState(
+      "ready",
+      "Connecting to your AI coach...",
+      "Sedang menyiapkan koneksi aman ke Gemini."
+    );
+
+    addLog("Meminta token dari Apps Script...");
+
+    requestEphemeralToken();
   }
 
-}
+  function requestEphemeralToken() {
+    const callbackName =
+      "speakMateTokenCallback_" + Date.now() + "_" +
+      Math.random().toString(36).slice(2);
 
+    const script = document.createElement("script");
+    let finished = false;
 
-// =====================================================
-// GEMINI LIVE SESSION
-// =====================================================
+    const timeout = setTimeout(() => {
+      finish();
 
-function startGeminiSession(
-  token
-) {
+      tokenRequestPending = false;
+      document.getElementById("connectButton").disabled = false;
+      document.getElementById("heroConnectButton").disabled = false;
 
-  addLog(
-    "Membuat WebSocket..."
-  );
+      addLog("Permintaan token timeout. Coba hubungkan kembali.");
+      setConnectionStatus("Gagal terhubung");
+      setVoiceState("ready", "Connection failed", "Coba hubungkan AI kembali.");
+    }, 20000);
 
+    function finish() {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      delete window[callbackName];
 
-  const wsUrl =
-    "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" +
-    encodeURIComponent(token);
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    }
 
+    window[callbackName] = function(data) {
+      finish();
+      tokenRequestPending = false;
 
-  addLog(
-    "Membuka koneksi Live API..."
-  );
+      if (!data || !data.success || !data.token) {
+        document.getElementById("connectButton").disabled = false;
+        document.getElementById("heroConnectButton").disabled = false;
 
+        addLog("Gagal mendapatkan token: " +
+          (data && data.error ? data.error : "Respons token tidak valid"));
 
-  socket =
-    new WebSocket(wsUrl);
+        setConnectionStatus("Gagal mendapatkan token");
+        setVoiceState("ready", "Connection failed", "Periksa koneksi dan coba lagi.");
+        return;
+      }
 
+      addLog("Token berhasil diterima.");
+      startGeminiSession(data.token);
+    };
 
-  socket.onopen =
-    function() {
+    script.onerror = function() {
+      finish();
+      tokenRequestPending = false;
 
-      addLog(
-        "WebSocket Connected."
-      );
+      document.getElementById("connectButton").disabled = false;
+      document.getElementById("heroConnectButton").disabled = false;
 
+      addLog("Gagal menghubungi Apps Script.");
+      setConnectionStatus("Gagal terhubung");
+      setVoiceState("ready", "Connection failed", "Coba hubungkan kembali.");
+    };
 
-      setConnectionStatus(
-        "🟢 Connected to Gemini",
-        "connected"
-      );
+    script.src = APPS_SCRIPT_URL +
+      "?bridge=1&callback=" + encodeURIComponent(callbackName);
 
+    document.body.appendChild(script);
+  }
+
+  // =====================================================
+  // GEMINI LIVE WEBSOCKET — EXISTING CONNECTION FLOW
+  // =====================================================
+
+  function startGeminiSession(token) {
+    addLog("Membuat WebSocket...");
+
+    const wsUrl =
+      "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" +
+      encodeURIComponent(token);
+
+    addLog("Membuka koneksi Live API...");
+
+    try {
+      socket = new WebSocket(wsUrl);
+    } catch (error) {
+      handleConnectionFailure(error.message);
+      return;
+    }
+
+    socket.onopen = function() {
+      addLog("WebSocket Connected.");
+      setConnectionStatus("Menyiapkan AI...");
 
       const setupMessage = {
-
         setup: {
-
-          model:
-            "models/" +
-            MODEL_NAME,
-
+          model: "models/" + MODEL_NAME,
 
           generationConfig: {
-
-            responseModalities:
-              ["AUDIO"]
-
+            responseModalities: ["AUDIO"]
           },
 
-
           systemInstruction: {
-
-            parts: [
-
-              {
-
-                text:
-                  "You are SpeakMate AI, " +
-                  "an English speaking coach. " +
-                  "You help users practice English speaking " +
-                  "and job interviews. " +
-                  "Speak naturally and briefly. " +
-                  "When the user speaks, respond as a friendly " +
-                  "English coach."
-
-              }
-
-            ]
-
+            parts: [{
+              text:
+                "You are SpeakMate AI, a friendly voice-based " +
+                "communication coach. " +
+                modes[selectedMode].instruction +
+                " Adapt to the user's language preference. " +
+                "For your first response in this session, greet the user " +
+                "briefly and begin the selected practice mode."
+            }]
           }
-
         }
-
       };
 
+      addLog("Mengirim konfigurasi Gemini untuk mode: " +
+        modes[selectedMode].title);
 
-      addLog(
-        "Mengirim konfigurasi ke Gemini..."
-      );
-
-
-      socket.send(
-        JSON.stringify(
-          setupMessage
-        )
-      );
-
-
-      addLog(
-        "Configuration dikirim."
-      );
-
+      socket.send(JSON.stringify(setupMessage));
+      addLog("Configuration dikirim.");
     };
 
+    socket.onmessage = async function(event) {
+      addLog("Response diterima dari Gemini.");
 
-  // ===================================================
-  // GEMINI RESPONSE
-  // ===================================================
-
-  socket.onmessage =
-    async function(event) {
-
-      addLog(
-        "Response diterima dari Gemini."
-      );
-
-
-      if (
-        event.data instanceof Blob
-      ) {
-
-        addLog(
-          "Response berupa Blob."
-        );
-
-
+      if (event.data instanceof Blob) {
         try {
-
-          const text =
-            await event.data.text();
-
-
-          processGeminiResponse(
-            text
-          );
-
+          const text = await event.data.text();
+          processGeminiResponse(text);
+        } catch (error) {
+          addLog("Gagal membaca Blob: " + error.message);
         }
-
-        catch (error) {
-
-          addLog(
-            "Gagal membaca Blob: " +
-            error.message
-          );
-
-        }
-
         return;
-
       }
 
-
-      if (
-        typeof event.data === "string"
-      ) {
-
-        processGeminiResponse(
-          event.data
-        );
-
+      if (typeof event.data === "string") {
+        processGeminiResponse(event.data);
       }
-
     };
 
-
-  socket.onerror =
-    function(error) {
-
-      addLog(
-        "❌ WebSocket error."
-      );
-
-
-      console.error(
-        error
-      );
-
-
-      setConnectionStatus(
-        "🔴 WebSocket Error",
-        "error"
-      );
-
+    socket.onerror = function(error) {
+      addLog("WebSocket error. Periksa koneksi Gemini.");
+      console.error(error);
+      setConnectionStatus("Koneksi error");
+      setVoiceState("ready", "Connection error", "Coba putuskan dan hubungkan kembali.");
     };
 
-
-  socket.onclose =
-    function(event) {
-
-      addLog(
-        "WebSocket ditutup. Code: " +
-        event.code
-      );
-
+    socket.onclose = function(event) {
+      addLog("WebSocket ditutup. Code: " + event.code);
 
       socket = null;
+      isGeminiConnected = false;
+      tokenRequestPending = false;
 
-      isGeminiConnected =
-        false;
+      stopMicrophone(false);
 
+      document.getElementById("connectButton").disabled = false;
+      document.getElementById("heroConnectButton").disabled = false;
+      document.getElementById("disconnectButton").disabled = true;
+      document.getElementById("micButton").disabled = true;
 
-      stopMicrophone();
-
-
-      document.getElementById(
-        "connectButton"
-      ).disabled = false;
-
-
-      document.getElementById(
-        "disconnectButton"
-      ).disabled = true;
-
-
-      document.getElementById(
-        "micButton"
-      ).disabled = true;
-
-
-      setConnectionStatus(
-        "🔴 Disconnected"
-      );
-
+      setConnectionStatus("Belum terhubung");
+      setVoiceState("ready", "Ready to practice?", "Hubungkan AI untuk memulai latihan.");
     };
+  }
 
-}
+  function handleConnectionFailure(message) {
+    socket = null;
+    tokenRequestPending = false;
 
+    document.getElementById("connectButton").disabled = false;
+    document.getElementById("heroConnectButton").disabled = false;
 
-// =====================================================
-// PROCESS GEMINI RESPONSE
-// =====================================================
+    addLog("Gagal membuat koneksi: " + message);
+    setConnectionStatus("Gagal terhubung");
+    setVoiceState("ready", "Connection failed", "Coba hubungkan kembali.");
+  }
 
-function processGeminiResponse(
-  text
-) {
+  // =====================================================
+  // GEMINI RESPONSE HANDLING
+  // =====================================================
 
-  try {
+  function processGeminiResponse(text) {
+    try {
+      const data = JSON.parse(text);
+      console.log("Gemini data:", data);
 
-    const data =
-      JSON.parse(text);
+      if (data.setupComplete) {
+        addLog("Gemini Live session siap.");
+        isGeminiConnected = true;
 
+        document.getElementById("connectButton").disabled = true;
+        document.getElementById("heroConnectButton").disabled = true;
+        document.getElementById("disconnectButton").disabled = false;
+        document.getElementById("micButton").disabled = false;
 
-    console.log(
-      "Gemini data:",
-      data
-    );
-
-
-    // ================================================
-    // SETUP COMPLETE
-    // ================================================
-
-    if (
-      data.setupComplete
-    ) {
-
-      addLog(
-        "Gemini Live session siap."
-      );
-
-
-      isGeminiConnected =
-        true;
-
-
-      document.getElementById(
-        "connectButton"
-      ).disabled = true;
-
-
-      document.getElementById(
-        "disconnectButton"
-      ).disabled = false;
-
-
-      document.getElementById(
-        "micButton"
-      ).disabled = false;
-
-
-      return;
-
-    }
-
-
-    // ================================================
-    // SERVER CONTENT
-    // ================================================
-
-    if (
-      data.serverContent
-    ) {
-
-      const serverContent =
-        data.serverContent;
-
-
-      // ==============================================
-      // MODEL TURN
-      // ==============================================
-
-      if (
-        serverContent.modelTurn
-      ) {
-
-        addLog(
-          "🤖 Gemini mengirim respons."
+        setConnectionStatus("AI terhubung", true);
+        setVoiceState(
+          "ready",
+          "Your AI coach is ready!",
+          "Aktifkan microphone untuk mulai berbicara."
         );
 
-
-        const parts =
-          serverContent
-            .modelTurn
-            .parts || [];
-
-
-        parts.forEach(
-          function(part) {
-
-            // ----------------------------------------
-            // AUDIO
-            // ----------------------------------------
-
-            if (
-              part.inlineData &&
-              part.inlineData.data
-            ) {
-
-              addLog(
-                "🔊 Audio response Gemini diterima."
-              );
-
-
-              playGeminiAudio(
-                part.inlineData.data
-              );
-
-            }
-
-
-            // ----------------------------------------
-            // TEXT
-            // ----------------------------------------
-
-            if (
-              part.text
-            ) {
-
-              addLog(
-                "🤖 Gemini: " +
-                part.text
-              );
-
-            }
-
-          }
-        );
-
+        return;
       }
 
-
-      // ==============================================
-      // TURN COMPLETE
-      // ==============================================
-
-      if (
-        serverContent.turnComplete
-      ) {
-
-        addLog(
-          "✅ Gemini selesai merespons."
-        );
-
+      if (data.error) {
+        addLog("Gemini Error: " + JSON.stringify(data.error));
+        return;
       }
 
-    }
+      if (!data.serverContent) return;
 
+      const content = data.serverContent;
 
-    // ================================================
-    // ERROR
-    // ================================================
+      if (content.modelTurn && content.modelTurn.parts) {
+        addLog("Gemini mengirim respons.");
 
-    if (
-      data.error
-    ) {
-
-      addLog(
-        "❌ Gemini Error: " +
-        JSON.stringify(
-          data.error
-        )
-      );
-
-    }
-
-  }
-
-  catch (error) {
-
-    addLog(
-      "Gagal membaca response Gemini: " +
-      error.message
-    );
-
-
-    console.error(
-      error
-    );
-
-  }
-
-}
-
-
-// =====================================================
-// START MICROPHONE
-// =====================================================
-
-async function startMicrophone() {
-
-  if (
-    !isGeminiConnected ||
-    !socket
-  ) {
-
-    addLog(
-      "Gemini belum terhubung."
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    addLog(
-      "Meminta akses microphone..."
-    );
-
-
-    mediaStream =
-      await navigator.mediaDevices
-        .getUserMedia({
-
-          audio: {
-
-            channelCount: 1,
-
-            echoCancellation: true,
-
-            noiseSuppression: true,
-
-            autoGainControl: true
-
+        content.modelTurn.parts.forEach(part => {
+          if (part.text) {
+            addLog("Gemini: " + part.text);
           }
 
+          if (part.inlineData && part.inlineData.data) {
+            addLog("Audio response Gemini diterima.");
+            playGeminiAudio(part.inlineData.data);
+          }
         });
 
+        setVoiceState(
+          "speaking",
+          "SpeakMate is responding...",
+          "AI sedang memberikan respons. Dengarkan, lalu lanjutkan percakapan."
+        );
+      }
 
-    addLog(
-      "Microphone berhasil diaktifkan."
-    );
+      if (content.turnComplete) {
+        addLog("Gemini selesai merespons.");
 
+        if (microphoneActive) {
+          setVoiceState(
+            "listening",
+            "Your turn to speak",
+            "Silakan berbicara. AI akan mendengarkan jawabanmu."
+          );
+        } else {
+          setVoiceState(
+            "ready",
+            "Your AI coach is ready",
+            "Aktifkan microphone untuk melanjutkan latihan."
+          );
+        }
+      }
+    } catch (error) {
+      addLog("Gagal membaca response Gemini: " + error.message);
+      console.error(error);
+    }
+  }
 
-    audioContext =
-      new (
-        window.AudioContext ||
-        window.webkitAudioContext
+  // =====================================================
+  // MICROPHONE — PRESERVED WORKING AUDIO PIPELINE
+  // =====================================================
+
+  async function startMicrophone() {
+    if (!isGeminiConnected || !socket) {
+      addLog("Gemini belum terhubung.");
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      addLog("Browser tidak mendukung akses microphone di halaman ini.");
+      return;
+    }
+
+    try {
+      addLog("Meminta akses microphone...");
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      addLog("Microphone berhasil diaktifkan.");
+
+      audioContext = new (
+        window.AudioContext || window.webkitAudioContext
       )();
 
+      addLog("Audio sample rate: " + audioContext.sampleRate + " Hz");
 
-    addLog(
-      "Audio sample rate: " +
-      audioContext.sampleRate +
-      " Hz"
-    );
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
 
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-    if (
-      audioContext.state ===
-      "suspended"
-    ) {
+      audioChunkCount = 0;
 
-      await audioContext.resume();
-
-    }
-
-
-    const source =
-      audioContext.createMediaStreamSource(
-        mediaStream
-      );
-
-
-    processor =
-      audioContext.createScriptProcessor(
-        4096,
-        1,
-        1
-      );
-
-
-    audioChunkCount = 0;
-
-
-    processor.onaudioprocess =
-      function(event) {
-
-        if (
-          !microphoneActive
-        ) {
-
+      processor.onaudioprocess = function(event) {
+        if (!microphoneActive || !socket ||
+            socket.readyState !== WebSocket.OPEN) {
           return;
-
         }
 
+        const inputData = event.inputBuffer.getChannelData(0);
 
-        if (
-          !socket ||
-          socket.readyState !==
-          WebSocket.OPEN
-        ) {
+        const resampled = downsampleAudio(
+          inputData,
+          audioContext.sampleRate,
+          16000
+        );
 
-          return;
-
-        }
-
-
-        const inputData =
-          event.inputBuffer
-            .getChannelData(0);
-
-
-        // ==========================================
-        // RESAMPLE 48kHz → 16kHz
-        // ==========================================
-
-        const targetSampleRate =
-          16000;
-
-
-        const inputSampleRate =
-          audioContext.sampleRate;
-
-
-        const resampled =
-          downsampleAudio(
-            inputData,
-            inputSampleRate,
-            targetSampleRate
-          );
-
-
-        const pcmData =
-          convertFloat32ToPCM16(
-            resampled
-          );
-
-
-        const base64Audio =
-          arrayBufferToBase64(
-            pcmData
-          );
-
+        const pcmData = convertFloat32ToPCM16(resampled);
+        const base64Audio = arrayBufferToBase64(pcmData);
 
         const message = {
-
           realtimeInput: {
-
             audio: {
-
-              data:
-                base64Audio,
-
-              mimeType:
-                "audio/pcm;rate=16000"
-
+              data: base64Audio,
+              mimeType: "audio/pcm;rate=16000"
             }
-
           }
-
         };
 
-
         try {
-
-          socket.send(
-            JSON.stringify(
-              message
-            )
-          );
-
-
+          socket.send(JSON.stringify(message));
           audioChunkCount++;
 
-
-          if (
-            audioChunkCount % 20 === 0
-          ) {
-
-            addLog(
-              "🎤 Audio 16kHz sedang dikirim ke Gemini..."
-            );
-
+          if (audioChunkCount % 20 === 0) {
+            addLog("Audio 16kHz sedang dikirim ke Gemini...");
           }
-
+        } catch (error) {
+          addLog("Gagal mengirim audio: " + error.message);
         }
-
-        catch (error) {
-
-          addLog(
-            "❌ Gagal mengirim audio: " +
-            error.message
-          );
-
-        }
-
       };
 
+      source.connect(processor);
+      processor.connect(audioContext.destination);
 
-    source.connect(
-      processor
-    );
+      microphoneActive = true;
 
+      document.getElementById("micButton").textContent = "⏹ Stop microphone";
+      document.getElementById("micStatus").textContent = "Microphone: ON 🎤";
 
-    processor.connect(
-      audioContext.destination
-    );
-
-
-    microphoneActive =
-      true;
-
-
-    document.getElementById(
-      "micButton"
-    ).textContent =
-      "⏹️ Stop Microphone";
-
-
-    document.getElementById(
-      "micStatus"
-    ).textContent =
-      "Microphone: ON 🎤";
-
-
-    addLog(
-      "🎤 Microphone aktif."
-    );
-
-  }
-
-  catch (error) {
-
-    addLog(
-      "Gagal mengakses microphone: " +
-      error.message
-    );
-
-
-    console.error(
-      error
-    );
-
-
-    document.getElementById(
-      "micStatus"
-    ).textContent =
-      "Microphone: ERROR";
-
-  }
-
-}
-
-
-// =====================================================
-// DOWNSAMPLE AUDIO
-// =====================================================
-
-function downsampleAudio(
-  inputData,
-  inputSampleRate,
-  targetSampleRate
-) {
-
-  if (
-    targetSampleRate >=
-    inputSampleRate
-  ) {
-
-    return inputData;
-
-  }
-
-
-  const sampleRateRatio =
-    inputSampleRate /
-    targetSampleRate;
-
-
-  const newLength =
-    Math.round(
-      inputData.length /
-      sampleRateRatio
-    );
-
-
-  const result =
-    new Float32Array(
-      newLength
-    );
-
-
-  let offsetResult = 0;
-
-  let offsetBuffer = 0;
-
-
-  while (
-    offsetResult <
-    result.length
-  ) {
-
-    const nextOffsetBuffer =
-      Math.round(
-        (
-          offsetResult + 1
-        ) *
-        sampleRateRatio
+      addLog("Microphone aktif.");
+      setVoiceState(
+        "listening",
+        "Listening to you...",
+        "Silakan berbicara. SpeakMate AI sedang mendengarkan."
       );
+    } catch (error) {
+      addLog("Gagal mengakses microphone: " + error.message);
+      console.error(error);
 
+      document.getElementById("micStatus").textContent = "Microphone: ERROR";
+      setVoiceState("ready", "Microphone unavailable", "Periksa izin microphone lalu coba lagi.");
+    }
+  }
 
-    let accum = 0;
+  async function toggleMicrophone() {
+    if (microphoneActive) {
+      stopMicrophone(true);
+    } else {
+      await startMicrophone();
+    }
+  }
 
-    let count = 0;
+  function stopMicrophone(showLog = true) {
+    microphoneActive = false;
 
-
-    for (
-      let i = offsetBuffer;
-      i < nextOffsetBuffer &&
-      i < inputData.length;
-      i++
-    ) {
-
-      accum +=
-        inputData[i];
-
-      count++;
-
+    if (processor) {
+      processor.onaudioprocess = null;
+      processor.disconnect();
+      processor = null;
     }
 
+    if (audioContext) {
+      const oldContext = audioContext;
+      audioContext = null;
+      oldContext.close().catch(() => {});
+    }
 
-    result[offsetResult] =
-      count > 0
-        ? accum / count
-        : 0;
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream = null;
+    }
 
+    document.getElementById("micButton").textContent = "🎤 Start microphone";
+    document.getElementById("micStatus").textContent = "Microphone: OFF";
 
-    offsetResult++;
+    if (showLog) {
+      addLog("Microphone dimatikan.");
+    }
 
-    offsetBuffer =
-      nextOffsetBuffer;
-
-  }
-
-
-  return result;
-
-}
-
-
-// =====================================================
-// TOGGLE MICROPHONE
-// =====================================================
-
-async function toggleMicrophone() {
-
-  if (
-    microphoneActive
-  ) {
-
-    stopMicrophone();
-
-  }
-
-  else {
-
-    await startMicrophone();
-
-  }
-
-}
-
-
-// =====================================================
-// STOP MICROPHONE
-// =====================================================
-
-function stopMicrophone() {
-
-  microphoneActive =
-    false;
-
-
-  if (
-    processor
-  ) {
-
-    processor.disconnect();
-
-    processor =
-      null;
-
-  }
-
-
-  if (
-    audioContext
-  ) {
-
-    audioContext.close();
-
-    audioContext =
-      null;
-
-  }
-
-
-  if (
-    mediaStream
-  ) {
-
-    mediaStream
-      .getTracks()
-      .forEach(
-        function(track) {
-
-          track.stop();
-
-        }
+    if (isGeminiConnected) {
+      setVoiceState(
+        "ready",
+        "Ready to continue?",
+        "Aktifkan microphone untuk melanjutkan latihan."
       );
-
-
-    mediaStream =
-      null;
-
+    }
   }
 
+  // =====================================================
+  // AUDIO RESAMPLING — 48kHz TO 16kHz
+  // =====================================================
 
-  document.getElementById(
-    "micButton"
-  ).textContent =
-    "🎤 Start Microphone";
+  function downsampleAudio(inputData, inputSampleRate, targetSampleRate) {
+    if (targetSampleRate >= inputSampleRate) {
+      return inputData;
+    }
 
+    const ratio = inputSampleRate / targetSampleRate;
+    const outputLength = Math.round(inputData.length / ratio);
+    const output = new Float32Array(outputLength);
 
-  document.getElementById(
-    "micStatus"
-  ).textContent =
-    "Microphone: OFF";
+    let outputOffset = 0;
+    let inputOffset = 0;
 
+    while (outputOffset < output.length) {
+      const nextInputOffset = Math.round((outputOffset + 1) * ratio);
+      let sum = 0;
+      let count = 0;
 
-  addLog(
-    "Microphone dimatikan."
-  );
+      for (
+        let i = inputOffset;
+        i < nextInputOffset && i < inputData.length;
+        i++
+      ) {
+        sum += inputData[i];
+        count++;
+      }
 
-}
+      output[outputOffset] = count ? sum / count : 0;
+      outputOffset++;
+      inputOffset = nextInputOffset;
+    }
 
-
-// =====================================================
-// DISCONNECT GEMINI
-// =====================================================
-
-function disconnectGemini() {
-
-  addLog(
-    "Memutuskan koneksi Gemini..."
-  );
-
-
-  stopMicrophone();
-
-
-  if (
-    socket
-  ) {
-
-    socket.close();
-
-    socket =
-      null;
-
+    return output;
   }
 
+  // =====================================================
+  // FLOAT32 TO PCM16
+  // =====================================================
 
-  isGeminiConnected =
-    false;
+  function convertFloat32ToPCM16(float32Array) {
+    const buffer = new ArrayBuffer(float32Array.length * 2);
+    const view = new DataView(buffer);
 
+    for (let i = 0; i < float32Array.length; i++) {
+      let sample = Math.max(-1, Math.min(1, float32Array[i]));
 
-  document.getElementById(
-    "connectButton"
-  ).disabled = false;
-
-
-  document.getElementById(
-    "disconnectButton"
-  ).disabled = true;
-
-
-  document.getElementById(
-    "micButton"
-  ).disabled = true;
-
-
-  setConnectionStatus(
-    "🔴 Disconnected"
-  );
-
-}
-
-
-// =====================================================
-// FLOAT32 → PCM16
-// =====================================================
-
-function convertFloat32ToPCM16(
-  float32Array
-) {
-
-  const buffer =
-    new ArrayBuffer(
-      float32Array.length * 2
-    );
-
-
-  const view =
-    new DataView(
-      buffer
-    );
-
-
-  for (
-    let i = 0;
-    i < float32Array.length;
-    i++
-  ) {
-
-    let sample =
-      Math.max(
-        -1,
-        Math.min(
-          1,
-          float32Array[i]
-        )
-      );
-
-
-    sample =
-      sample < 0
+      sample = sample < 0
         ? sample * 0x8000
         : sample * 0x7fff;
 
+      view.setInt16(i * 2, sample, true);
+    }
 
-    view.setInt16(
-      i * 2,
-      sample,
-      true
-    );
-
+    return buffer;
   }
 
+  // =====================================================
+  // ARRAY BUFFER TO BASE64
+  // =====================================================
 
-  return buffer;
+  function arrayBufferToBase64(buffer) {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
 
-}
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
 
-
-// =====================================================
-// ARRAY BUFFER → BASE64
-// =====================================================
-
-function arrayBufferToBase64(
-  buffer
-) {
-
-  let binary = "";
-
-  const bytes =
-    new Uint8Array(
-      buffer
-    );
-
-
-  const chunkSize =
-    0x8000;
-
-
-  for (
-    let i = 0;
-    i < bytes.length;
-    i += chunkSize
-  ) {
-
-    const chunk =
-      bytes.subarray(
-        i,
-        i + chunkSize
-      );
-
-
-    binary +=
-      String.fromCharCode(
-        ...chunk
-      );
-
+    return btoa(binary);
   }
 
+  // =====================================================
+  // GEMINI AUDIO PLAYBACK
+  // =====================================================
 
-  return btoa(
-    binary
-  );
+  function playGeminiAudio(base64Data) {
+    try {
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
 
-}
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
 
+      // Gemini Live audio output is expected to be 24kHz PCM16.
+      // Decode explicitly as little-endian PCM samples.
+      const sampleCount = Math.floor(bytes.byteLength / 2);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, sampleCount * 2);
+      const sampleRate = 24000;
 
-// =====================================================
-// PLAY GEMINI AUDIO
-// =====================================================
+      if (!playbackContext) {
+        playbackContext = new (
+          window.AudioContext || window.webkitAudioContext
+        )();
+      }
 
-function playGeminiAudio(
-  base64Data
-) {
+      if (playbackContext.state === "suspended") {
+        playbackContext.resume();
+      }
 
-  try {
-
-    const binaryString =
-      atob(base64Data);
-
-
-    const bytes =
-      new Uint8Array(
-        binaryString.length
-      );
-
-
-    for (
-      let i = 0;
-      i < binaryString.length;
-      i++
-    ) {
-
-      bytes[i] =
-        binaryString.charCodeAt(i);
-
-    }
-
-
-    const pcmData =
-      new Int16Array(
-        bytes.buffer
-      );
-
-
-    const sampleRate =
-      24000;
-
-
-    if (
-      !playbackContext
-    ) {
-
-      playbackContext =
-        new (
-          window.AudioContext ||
-          window.webkitAudioContext
-        )({
-
-          sampleRate:
-            sampleRate
-
-        });
-
-    }
-
-
-    if (
-      playbackContext.state ===
-      "suspended"
-    ) {
-
-      playbackContext.resume();
-
-    }
-
-
-    const audioBuffer =
-      playbackContext.createBuffer(
+      const audioBuffer = playbackContext.createBuffer(
         1,
-        pcmData.length,
+        sampleCount,
         sampleRate
       );
 
+      const channelData = audioBuffer.getChannelData(0);
 
-    const channelData =
-      audioBuffer.getChannelData(
-        0
-      );
+      for (let i = 0; i < sampleCount; i++) {
+        channelData[i] = view.getInt16(i * 2, true) / 32768;
+      }
 
+      const source = playbackContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(playbackContext.destination);
 
-    for (
-      let i = 0;
-      i < pcmData.length;
-      i++
-    ) {
+      const currentTime = playbackContext.currentTime;
 
-      channelData[i] =
-        pcmData[i] / 32768;
+      if (nextPlaybackTime < currentTime) {
+        nextPlaybackTime = currentTime;
+      }
 
+      source.start(nextPlaybackTime);
+      nextPlaybackTime += audioBuffer.duration;
+
+      addLog("Memutar suara Gemini...");
+    } catch (error) {
+      addLog("Gagal memutar audio Gemini: " + error.message);
+      console.error(error);
     }
-
-
-    const source =
-      playbackContext
-        .createBufferSource();
-
-
-    source.buffer =
-      audioBuffer;
-
-
-    source.connect(
-      playbackContext.destination
-    );
-
-
-    const currentTime =
-      playbackContext.currentTime;
-
-
-    if (
-      nextPlaybackTime <
-      currentTime
-    ) {
-
-      nextPlaybackTime =
-        currentTime;
-
-    }
-
-
-    source.start(
-      nextPlaybackTime
-    );
-
-
-    nextPlaybackTime +=
-      audioBuffer.duration;
-
-
-    addLog(
-      "🔊 Memutar suara Gemini..."
-    );
-
   }
 
-  catch (error) {
+  // =====================================================
+  // DISCONNECT
+  // =====================================================
 
-    addLog(
-      "❌ Gagal memutar audio Gemini: " +
-      error.message
+  function disconnectGemini() {
+    addLog("Mengakhiri sesi latihan...");
+
+    stopMicrophone();
+
+    isGeminiConnected = false;
+    tokenRequestPending = false;
+
+    document.getElementById("connectButton").disabled = false;
+    document.getElementById("heroConnectButton").disabled = false;
+    document.getElementById("disconnectButton").disabled = true;
+    document.getElementById("micButton").disabled = true;
+
+    if (socket) {
+      const oldSocket = socket;
+      socket = null;
+      oldSocket.close();
+    }
+
+    if (playbackContext) {
+      playbackContext.close().catch(() => {});
+      playbackContext = null;
+      nextPlaybackTime = 0;
+    }
+
+    setConnectionStatus("Belum terhubung");
+    setVoiceState(
+      "ready",
+      "Session ended",
+      "Pilih mode latihan dan hubungkan AI untuk memulai sesi baru."
     );
 
-
-    console.error(
-      error
-    );
-
+    addLog("Sesi latihan berakhir.");
   }
-
-}
-
 </script>
-
 </body>
-
 </html>
