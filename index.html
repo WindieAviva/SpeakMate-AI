@@ -699,6 +699,52 @@
       .page-heading h1 { font-size: 27px; }
       .panel-head,.panel-body { padding: 16px; }
     }
+
+    .session-exit-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(34,35,58,.48);
+    }
+    .session-exit-overlay.visible { display: flex; }
+    .session-exit-dialog {
+      width: min(100%, 430px);
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .session-exit-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 12px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: var(--purple-light);
+      color: var(--purple-dark);
+      font-size: 25px;
+    }
+    .session-exit-dialog h2 {
+      margin: 0 0 8px;
+      font-size: 21px;
+      line-height: 1.35;
+    }
+    .session-exit-dialog p {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+    .session-exit-actions {
+      display: flex;
+      justify-content: center;
+    }
+    .session-exit-actions .btn { min-width: 150px; }
   </style>
 </head>
 
@@ -988,7 +1034,7 @@
                 🎤 Start microphone
               </button>
               <button class="btn danger" id="disconnectButton" onclick="disconnectGemini()" disabled>
-                End session
+                Akhiri Sesi
               </button>
             </div>
             <div class="mic-status" id="micStatus" aria-live="polite">Microphone: OFF</div>
@@ -1038,6 +1084,17 @@ Selamat datang di sesi latihan.
     </div>
   </section>
 </main>
+
+<div class="session-exit-overlay" id="sessionExitWarning" role="presentation" aria-hidden="true">
+  <section class="session-exit-dialog" role="alertdialog" aria-modal="true" aria-labelledby="sessionExitTitle" aria-describedby="sessionExitMessage">
+    <div class="session-exit-icon" aria-hidden="true">!</div>
+    <h2 id="sessionExitTitle">Sesi latihan masih aktif</h2>
+    <p id="sessionExitMessage">Silakan akhiri sesi latihan terlebih dahulu sebelum meninggalkan halaman ini.</p>
+    <div class="session-exit-actions">
+      <button class="btn primary" type="button" onclick="returnToActiveSession()">Kembali ke sesi</button>
+    </div>
+  </section>
+</div>
 
 <footer class="footer">
   <strong>SpeakMate AI</strong> · Generative AI for Communication Skill Development
@@ -1138,7 +1195,37 @@ Selamat datang di sesi latihan.
   // PAGE NAVIGATION — NO RELOAD
   // =====================================================
 
+  function isPracticeSessionActive() {
+    return Boolean(socket || tokenRequestPending || isGeminiConnected || microphoneActive);
+  }
+
+  function showSessionExitWarning() {
+    const warning = document.getElementById("sessionExitWarning");
+    warning.classList.add("visible");
+    warning.setAttribute("aria-hidden", "false");
+    const returnButton = warning.querySelector("button");
+    if (returnButton) returnButton.focus();
+  }
+
+  function hideSessionExitWarning() {
+    const warning = document.getElementById("sessionExitWarning");
+    warning.classList.remove("visible");
+    warning.setAttribute("aria-hidden", "true");
+  }
+
+  function returnToActiveSession() {
+    hideSessionExitWarning();
+    showPage("session");
+  }
+
   function showPage(name) {
+    // Saat koneksi/sesi latihan masih aktif, semua navigasi keluar diblokir.
+    if (name !== "session" && isPracticeSessionActive()) {
+      showSessionExitWarning();
+      return false;
+    }
+
+    hideSessionExitWarning();
     document.querySelectorAll(".page").forEach(page => {
       page.classList.remove("active");
     });
@@ -1158,6 +1245,7 @@ Selamat datang di sesi latihan.
     });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+    return true;
   }
 
   function startPractice(mode) {
@@ -1238,8 +1326,7 @@ Selamat datang di sesi latihan.
   }
 
   function leavePractice() {
-    // Jangan putuskan koneksi secara otomatis.
-    // Navigasi halaman tidak mengubah koneksi atau sesi audio.
+    // showPage akan menahan navigasi jika sesi masih aktif.
     showPage("modes");
   }
 
