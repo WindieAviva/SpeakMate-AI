@@ -533,6 +533,19 @@
     .config-summary-label { color: var(--muted); font-size: 11px; }
     .config-summary strong { display: block; margin-top: 3px; }
     .config-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .debate-config-panel { grid-column: 1 / -1; }
+    .debate-field { margin-top: 14px; }
+    .debate-field label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 700; }
+    .debate-field input { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: white; font: inherit; }
+    .debate-choice-row { display: flex; flex-wrap: wrap; gap: 9px; }
+    .debate-choice { flex: 1 1 150px; min-height: 44px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: white; cursor: pointer; text-align: left; }
+    .debate-choice.selected { border-color: var(--purple); background: var(--purple-light); box-shadow: 0 0 0 1px var(--purple); }
+    .debate-help-panel { margin-top: 16px; padding: 15px; border: 1px solid #e5e2ff; border-radius: 12px; background: #f8f7ff; }
+    .debate-help-panel h4 { margin: 0 0 8px; font-size: 13px; }
+    .debate-help-panel p, .debate-help-panel li { color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .debate-help-panel ul { margin: 7px 0 0; padding-left: 20px; }
+    .debate-session-tools { margin-top: 18px; padding-top: 17px; border-top: 1px solid var(--line); }
+    .debate-session-tools .btn { width: 100%; }
 
     @media (max-width: 850px) {
       .config-layout { grid-template-columns: 1fr; }
@@ -898,12 +911,12 @@
         <span class="mode-footer"><span>Latihan berbicara</span><span>→</span></span>
       </button>
 
-      <button class="mode-card" type="button" disabled aria-label="Debate Mode segera hadir">
+      <button class="mode-card" type="button" onclick="startPractice('debate')">
         <span class="mode-icon green-bg">⚖️</span>
         <h3>Debate Mode</h3>
-        <span class="translation">Latihan debat bahasa Inggris</span>
-        <p>Practice defending a position, responding to counterarguments, and explaining your reasoning.</p>
-        <span class="mode-footer"><span>Segera hadir pada tahap berikutnya</span><span>✦</span></span>
+        <span class="translation">Latihan debat dan adu argumen</span>
+        <p>Pilih posisi Pro atau Contra, susun argumen, dan tanggapi argumen lawan bersama AI.</p>
+        <span class="mode-footer"><span>Atur debat</span><span>→</span></span>
       </button>
     </div>
   </section>
@@ -919,6 +932,31 @@
     </div>
 
     <div class="config-layout">
+      <section class="config-panel debate-config-panel" id="debateConfigPanel" hidden>
+        <h2>Pengaturan Debate Mode</h2>
+        <p class="config-help">Tentukan topik, posisi yang kamu bela, dan siapa yang menyampaikan argumen pertama.</p>
+        <div class="debate-field">
+          <label for="debateTopic">Topik debat</label>
+          <input id="debateTopic" type="text" maxlength="180" value="Should students be allowed to use AI for assignments?" placeholder="Tulis topik debat yang ingin dibahas">
+        </div>
+        <div class="debate-field">
+          <label>Posisi yang kamu pilih</label>
+          <div class="debate-choice-row" role="group" aria-label="Pilih posisi debat">
+            <button type="button" class="debate-choice selected" data-debate-position="pro" onclick="selectDebatePosition('pro')" aria-pressed="true">Pro · Mendukung</button>
+            <button type="button" class="debate-choice" data-debate-position="contra" onclick="selectDebatePosition('contra')" aria-pressed="false">Contra · Menentang</button>
+          </div>
+          <p class="config-help" id="debatePositionHint">Kamu mendukung topik; AI akan mengambil posisi yang menentang.</p>
+        </div>
+        <div class="debate-field">
+          <label>Siapa yang menyampaikan argumen pertama?</label>
+          <div class="debate-choice-row" role="group" aria-label="Pilih pembicara pertama">
+            <button type="button" class="debate-choice selected" data-debate-starter="user" onclick="selectDebateStarter('user')" aria-pressed="true">Saya mulai dulu</button>
+            <button type="button" class="debate-choice" data-debate-starter="ai" onclick="selectDebateStarter('ai')" aria-pressed="false">AI mulai dulu</button>
+          </div>
+          <p class="config-help" id="debateStarterHint">Setelah terhubung, sampaikan argumen pembuka untuk memulai debat.</p>
+        </div>
+      </section>
+
       <div class="config-panel">
         <h2>1. Bahasa latihan</h2>
         <p class="config-help">Pilih bahasa yang akan kamu gunakan saat berbicara dengan AI.</p>
@@ -1121,6 +1159,12 @@ Selamat datang di sesi latihan.
               <div><h4>Keep improving</h4><p>Setelah End Session, tinjau catatan bahasa dan ringkasan yang tersimpan di browser ini.</p></div>
             </div>
           </div>
+          <div class="debate-session-tools" id="debateSessionTools" hidden>
+            <h3>Debate Toolkit</h3>
+            <p class="config-help">Butuh ide saat berdebat? Buka bantuan untuk melihat pola argumen dan kalimat yang bisa kamu gunakan.</p>
+            <button class="btn secondary" type="button" id="debateHelpButton" onclick="toggleDebateHelp()">💡 Argument Help</button>
+            <div class="debate-help-panel" id="debateHelpPanel" hidden aria-live="polite"></div>
+          </div>
           <div class="notice">
             <strong>Tip:</strong> Pastikan browser mengizinkan akses microphone.
             For the best experience, practice in a quiet environment.
@@ -1188,6 +1232,8 @@ Selamat datang di sesi latihan.
   let tokenRequestPending = false;
   let activeTokenCallback = null;
   let sessionStartedAt = null;
+  let selectedDebatePosition = "pro";
+  let selectedDebateStarter = "user";
   let sessionTranscript = [];
   const PRACTICE_HISTORY_KEY = "speakmatePracticeHistoryV1";
 
@@ -1229,6 +1275,21 @@ Selamat datang di sesi latihan.
         "to say, offer one simple topic or prompt. Ask relevant follow-up " +
         "questions and give concise suggestions about clarity, structure, and " +
         "relevance. Do not claim to measure vocal traits you cannot reliably determine."
+    },
+
+    debate: {
+      title: "Debate Mode",
+      subtitle: "Bela pendapat, tanggapi argumen lawan, dan latih penalaranmu.",
+      tag: "Debate",
+      instruction:
+        "Act as a fair but challenging debate opponent. Debate the topic and " +
+        "take the position opposite to the user's selected position. Keep the " +
+        "exchange free-form and continue until the user chooses to end the debate. " +
+        "Present one clear argument at a time, respond directly to the user's reasoning, " +
+        "ask for evidence when useful, and never insult or belittle the user. " +
+        "Do not interrupt the debate with language corrections. When the user says " +
+        "'end debate' or clearly asks to finish the debate, stop arguing and provide " +
+        "brief language feedback based only on what you can identify from the conversation."
     },
 
     professional: {
@@ -1307,11 +1368,88 @@ Selamat datang di sesi latihan.
     if (!modes[mode]) return;
 
     selectedMode = mode;
+    const debatePanel = document.getElementById("debateConfigPanel");
+    debatePanel.hidden = mode !== "debate";
     document.getElementById("configModeDescription").textContent =
       modes[mode].title + " · " + modes[mode].subtitle +
       " Pilih bahasa dan level sebelum memulai.";
     updatePracticeConfigSummary();
     showPage("config");
+  }
+
+  function selectDebatePosition(position) {
+    if (!["pro", "contra"].includes(position)) return;
+    selectedDebatePosition = position;
+    document.querySelectorAll("[data-debate-position]").forEach(button => {
+      const selected = button.dataset.debatePosition === position;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    document.getElementById("debatePositionHint").textContent = position === "pro"
+      ? "Kamu mendukung topik; AI akan mengambil posisi yang menentang."
+      : "Kamu menentang topik; AI akan mengambil posisi yang mendukung.";
+  }
+
+  function selectDebateStarter(starter) {
+    if (!["user", "ai"].includes(starter)) return;
+    selectedDebateStarter = starter;
+    document.querySelectorAll("[data-debate-starter]").forEach(button => {
+      const selected = button.dataset.debateStarter === starter;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    document.getElementById("debateStarterHint").textContent = starter === "user"
+      ? "Setelah terhubung, sampaikan argumen pembuka untuk memulai debat."
+      : "Setelah terhubung dan microphone aktif, ucapkan “Start debate” agar AI menyampaikan argumen pembuka.";
+  }
+
+  function getDebateTopic() {
+    const input = document.getElementById("debateTopic");
+    return input && input.value.trim() ? input.value.trim() : "Should students be allowed to use AI for assignments?";
+  }
+
+  function getSelectedModeInstruction() {
+    if (selectedMode !== "debate") return modes[selectedMode].instruction;
+    const userSide = selectedDebatePosition === "pro" ? "PRO / in favor" : "CONTRA / against";
+    const aiSide = selectedDebatePosition === "pro" ? "CONTRA / against" : "PRO / in favor";
+    const starterInstruction = selectedDebateStarter === "ai"
+      ? "The AI should deliver the opening argument after the user says 'Start debate'. Until that trigger, wait silently. "
+      : "The user delivers the opening argument first. Wait silently until the user speaks. ";
+    return modes.debate.instruction + " The debate topic is: " + getDebateTopic() + ". " +
+      "The user's position is " + userSide + "; your position is " + aiSide + ". " +
+      starterInstruction + "Stay in the assigned positions unless the user asks to stop the debate.";
+  }
+
+  function toggleDebateHelp() {
+    const panel = document.getElementById("debateHelpPanel");
+    const button = document.getElementById("debateHelpButton");
+    panel.hidden = !panel.hidden;
+    button.setAttribute("aria-expanded", String(!panel.hidden));
+    button.textContent = panel.hidden ? "💡 Argument Help" : "✕ Hide Argument Help";
+    if (panel.hidden) return;
+
+    const topic = getDebateTopic();
+    const userSide = selectedDebatePosition === "pro" ? "mendukung" : "menentang";
+    const examples = selectedLanguage === "id"
+      ? ["Argumen utamaku adalah…", "Alasanku adalah… karena…", "Sebagai contoh, …", "Aku memahami pendapatmu, tetapi…", "Bukti atau contoh apa yang mendukung klaimmu?"]
+      : selectedLanguage === "ja"
+        ? ["私の主な主張は…", "その理由は…です。", "例えば、…", "あなたの意見は分かりますが、…", "その主張を裏付ける証拠は何ですか。"]
+        : selectedLanguage === "zh"
+          ? ["我的主要观点是……", "原因是……", "例如，……", "我理解你的观点，但是……", "有什么证据可以支持这个观点？"]
+          : ["My main argument is…", "The reason is…", "For example,…", "I understand your point, but…", "What evidence supports that claim?"];
+    const heading = document.createElement("h4");
+    heading.textContent = "Quick argument prompts";
+    const intro = document.createElement("p");
+    intro.textContent = "Topik: “" + topic + "”. Posisi kamu: " + userSide + ". Gunakan pola berikut untuk membangun argumen, memberi contoh, dan menanggapi lawan.";
+    const list = document.createElement("ul");
+    examples.forEach(example => {
+      const item = document.createElement("li");
+      item.textContent = example;
+      list.appendChild(item);
+    });
+    const note = document.createElement("p");
+    note.textContent = "Tips: sampaikan satu klaim, jelaskan alasannya, lalu berikan contoh. Bantuan ini berupa kerangka kalimat; sesuaikan dengan topik dan pendapatmu sendiri.";
+    panel.replaceChildren(heading, intro, list, note);
   }
 
   function selectPracticeLanguage(language) {
@@ -1363,21 +1501,35 @@ Selamat datang di sesi latihan.
     document.getElementById("sessionTitle").textContent = modes[selectedMode].title;
     document.getElementById("sessionSubtitle").textContent = modes[selectedMode].subtitle;
     document.getElementById("sessionTag").textContent = modes[selectedMode].tag;
+    const debateTools = document.getElementById("debateSessionTools");
+    debateTools.hidden = selectedMode !== "debate";
+    document.getElementById("debateHelpPanel").hidden = true;
+    document.getElementById("debateHelpButton").textContent = "💡 Argument Help";
+    document.getElementById("debateHelpButton").setAttribute("aria-expanded", "false");
     document.getElementById("conversationLog").textContent =
       "Welcome to SpeakMate AI.\n" +
       "Mode: " + modes[selectedMode].title + "\n" +
       "Practice language: " + practiceLanguages[selectedLanguage].label + "\n" +
       "Level: " + selectedLevel + "\n" +
-      "AI explanations: " + explanationLabels[selectedExplanationLanguage] + "\n\n" +
+      "AI explanations: " + explanationLabels[selectedExplanationLanguage] + "\n" +
+      (selectedMode === "debate"
+        ? "Debate topic: " + getDebateTopic() + "\nYour position: " + selectedDebatePosition.toUpperCase() + "\nAI position: " + (selectedDebatePosition === "pro" ? "CONTRA" : "PRO") + "\nFirst speaker: " + (selectedDebateStarter === "user" ? "You" : "AI (say ‘Start debate’ to trigger the opening)") + "\n\n"
+        : "\n") +
       "1. Hubungkan Gemini.\n" +
       "2. Aktifkan microphone.\n" +
-      "3. Mulai berbicara bersama AI.";
+      (selectedMode === "debate" && selectedDebateStarter === "ai"
+        ? "3. Ucapkan ‘Start debate’ agar AI membuka debat.\n4. Akhiri dengan mengatakan ‘End debate’, lalu tekan End Session."
+        : selectedMode === "debate"
+          ? "3. Sampaikan argumen pembuka.\n4. Akhiri dengan mengatakan ‘End debate’, lalu tekan End Session."
+          : "3. Mulai berbicara bersama AI.");
 
     setVoiceState(
       "ready",
       "Ready to practice?",
       "Pengaturan: " + practiceLanguages[selectedLanguage].label + " · " + selectedLevel +
-      ". Hubungkan Gemini, lalu aktifkan microphone untuk memulai latihan."
+      (selectedMode === "debate"
+        ? ". Topik: " + getDebateTopic() + ". Kamu: " + selectedDebatePosition.toUpperCase() + "; AI: " + (selectedDebatePosition === "pro" ? "CONTRA" : "PRO") + ". Hubungkan Gemini, aktifkan microphone, lalu mulai debat."
+        : ". Hubungkan Gemini, lalu aktifkan microphone untuk memulai latihan.")
     );
     showPage("session");
   }
@@ -1458,6 +1610,10 @@ Selamat datang di sesi latihan.
       language: practiceLanguages[selectedLanguage] ? practiceLanguages[selectedLanguage].label : selectedLanguage,
       level: selectedLevel,
       explanation: explanationLabels[selectedExplanationLanguage] || selectedExplanationLanguage,
+      debateTopic: selectedMode === "debate" ? getDebateTopic() : "",
+      debatePosition: selectedMode === "debate" ? selectedDebatePosition : "",
+      debateAiPosition: selectedMode === "debate" ? (selectedDebatePosition === "pro" ? "contra" : "pro") : "",
+      debateStarter: selectedMode === "debate" ? selectedDebateStarter : "",
       durationSeconds: sessionStartedAt ? Math.floor((endedAt - sessionStartedAt) / 1000) : 0,
       userTurnCount: transcript.filter(item => item.role === "user").length,
       transcript,
@@ -1472,7 +1628,10 @@ Selamat datang di sesi latihan.
 
   function renderSessionSummary(record) {
     document.getElementById("summaryMode").textContent =
-      record.modeTitle + " · " + record.language + " · " + record.level;
+      record.modeTitle + " · " + record.language + " · " + record.level +
+      (record.mode === "debate" && record.debateTopic
+        ? " · Topik: " + record.debateTopic + " · Posisi kamu: " + String(record.debatePosition || "").toUpperCase()
+        : "");
     document.getElementById("summaryDuration").textContent = formatDuration(record.durationSeconds);
     document.getElementById("summaryTurns").textContent = String(record.userTurnCount || 0);
 
@@ -1556,6 +1715,9 @@ Selamat datang di sesi latihan.
       const date = record.date ? new Date(record.date).toLocaleString() : "Tanggal tidak tersedia";
       meta.textContent = date + " · " + (record.language || "Bahasa tidak tersedia") +
         " · " + (record.level || "Level tidak tersedia") +
+        (record.mode === "debate" && record.debateTopic
+          ? " · Topik: " + record.debateTopic + " · Posisi: " + String(record.debatePosition || "").toUpperCase()
+          : "") +
         " · " + formatDuration(record.durationSeconds) +
         " · " + (record.userTurnCount || 0) + " giliran pengguna";
       const note = document.createElement("p");
@@ -1730,7 +1892,7 @@ Selamat datang di sesi latihan.
             parts: [{
               text:
                 "You are SpeakMate AI, a friendly voice-based communication " +
-                "coach. " + modes[selectedMode].instruction +
+                "coach. " + getSelectedModeInstruction() +
                 " The user's selected practice language is " +
                 practiceLanguages[selectedLanguage].instruction + ". " +
                 "Speak primarily in that language throughout the session. " +
@@ -1751,11 +1913,16 @@ Selamat datang di sesi latihan.
                 "unless they explicitly request a language change. Do not produce an unsolicited opening response " +
                 "after setup. Wait silently until the user speaks first. Treat the user's first utterance as the " +
                 "start of practice and respond according to the selected mode's instructions. " +
-                "For language learning, prioritize communication and never interrupt the user to correct them. " +
-                "When the user finishes a turn, respond to their meaning first. If there is a meaningful grammar, " +
-                "vocabulary, or naturalness issue, optionally add at most one short, encouraging correction using " +
-                "the phrase 'Language tip:' and provide a natural alternative. Do not correct every minor error or " +
-                "invent mistakes. Adapt explanations to the selected explanation language and proficiency level. " +
+                (selectedMode === "debate"
+                  ? "During the debate, prioritize the arguments and do not interrupt with language corrections. " +
+                    "Only after the user clearly says 'end debate', provide brief language feedback based on " +
+                    "actual examples from their speech, using the phrase 'Language tip:' where useful. "
+                  : "For language learning, prioritize communication and never interrupt the user to correct them. " +
+                    "When the user finishes a turn, respond to their meaning first. If there is a meaningful grammar, " +
+                    "vocabulary, or naturalness issue, optionally add at most one short, encouraging correction using " +
+                    "the phrase 'Language tip:' and provide a natural alternative. Do not correct every minor error or " +
+                    "invent mistakes. ") +
+                "Adapt explanations to the selected explanation language and proficiency level. " +
                 "Do not claim to score pronunciation, confidence, or vocal traits unless the system has reliable " +
                 "evidence for those measurements. At the end of a useful response, ask at most one relevant follow-up."
             }]
