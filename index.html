@@ -745,7 +745,26 @@
       justify-content: center;
     }
     .session-exit-actions .btn { min-width: 150px; }
-  </style>
+  
+    /* STAGE 3.2–3.3: feedback, session summary, and local history */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 22px 0; }
+    .summary-card, .history-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+    .summary-card h3, .history-card h3 { margin: 0 0 8px; color: var(--ink); }
+    .summary-card p, .history-card p { margin: 0; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+    .summary-section { margin-top: 22px; }
+    .summary-section h2 { margin: 0 0 12px; color: var(--ink); }
+    .summary-list { display: grid; gap: 10px; }
+    .summary-item { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); line-height: 1.6; overflow-wrap: anywhere; }
+    .summary-item strong { display: block; color: var(--ink); margin-bottom: 4px; }
+    .summary-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .history-list { display: grid; gap: 14px; }
+    .history-meta { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 8px 0 14px; }
+    .empty-history { text-align: center; padding: 30px 20px; }
+    .empty-history .placeholder-icon { margin: 0 auto 12px; }
+    @media (max-width: 850px) { .summary-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 580px) { .summary-grid { grid-template-columns: 1fr; } .summary-card, .history-card { padding: 16px; } }
+
+</style>
 </head>
 
 <body>
@@ -990,15 +1009,42 @@
       <h1>Practice History</h1>
       <p>Temukan kembali sesi latihan dan evaluasi yang pernah kamu lakukan.</p>
     </div>
-    <div class="placeholder-panel">
-      <div class="placeholder-icon">🕘</div>
-      <h2>Your practice history will appear here</h2>
-      <p>Di tahap berikutnya, riwayat latihan dapat memuat tanggal, mode latihan, ringkasan percakapan, hasil evaluasi, dan rekomendasi. Penyimpanan riwayat belum diaktifkan pada tahap ini.</p>
-      <span class="placeholder-note">Tahap 1 · Kerangka halaman</span>
+    <div id="historyList" class="history-list" aria-live="polite">
+      <div class="placeholder-panel empty-history">
+        <div class="placeholder-icon">🕘</div>
+        <h2>Belum ada riwayat latihan</h2>
+        <p>Ringkasan sesi akan tersimpan di browser ini setelah kamu menekan End Session.</p>
+      </div>
     </div>
   </section>
 
-  <!-- PAGE 6: PRACTICE SESSION -->
+  <!-- PAGE 6: SESSION SUMMARY -->
+  <section class="page" id="page-summary">
+    <div class="page-heading">
+      <span class="eyebrow">YOUR PRACTICE REVIEW</span>
+      <h1>Session Summary</h1>
+      <p>Ringkasan sesi dan catatan bahasa dari percakapan yang terekam.</p>
+    </div>
+    <div class="summary-grid">
+      <article class="summary-card"><h3>Practice mode</h3><p id="summaryMode">—</p></article>
+      <article class="summary-card"><h3>Duration</h3><p id="summaryDuration">—</p></article>
+      <article class="summary-card"><h3>Your turns</h3><p id="summaryTurns">—</p></article>
+    </div>
+    <div class="summary-section">
+      <h2>Language feedback</h2>
+      <div id="summaryCorrections" class="summary-list" aria-live="polite"></div>
+    </div>
+    <div class="summary-section">
+      <h2>Session transcript</h2>
+      <div id="summaryTranscript" class="summary-list" aria-live="polite"></div>
+    </div>
+    <div class="summary-actions">
+      <button class="btn secondary" type="button" onclick="showPage('history')">View History</button>
+      <button class="btn primary" type="button" onclick="showPage('modes')">Practice Again →</button>
+    </div>
+  </section>
+
+  <!-- PAGE 7: PRACTICE SESSION -->
   <section class="page" id="page-session">
     <button class="back-link" onclick="leavePractice()">← Kembali ke pilihan latihan</button>
 
@@ -1033,8 +1079,8 @@
               <button class="btn primary" id="micButton" onclick="toggleMicrophone()" disabled>
                 🎤 Start microphone
               </button>
-              <button class="btn danger" id="disconnectButton" onclick="disconnectGemini()" disabled>
-                Akhiri Sesi
+              <button class="btn danger" id="disconnectButton" onclick="endPracticeSession()" disabled>
+                End Session
               </button>
             </div>
             <div class="mic-status" id="micStatus" aria-live="polite">Microphone: OFF</div>
@@ -1068,11 +1114,11 @@ Selamat datang di sesi latihan.
             </div>
             <div class="guide-item">
               <span class="guide-icon">🎙️</span>
-              <div><h4>Speak naturally</h4><p>Bicara dengan jelas dan tunggu respons AI.</p></div>
+              <div><h4>Speak naturally</h4><p>Kamu memulai percakapan. AI merespons sesuai mode dan dapat memberi satu tips bahasa bila diperlukan.</p></div>
             </div>
             <div class="guide-item">
               <span class="guide-icon">🌱</span>
-              <div><h4>Keep improving</h4><p>Kesalahan adalah bagian dari proses belajar.</p></div>
+              <div><h4>Keep improving</h4><p>Setelah End Session, tinjau catatan bahasa dan ringkasan yang tersimpan di browser ini.</p></div>
             </div>
           </div>
           <div class="notice">
@@ -1141,6 +1187,9 @@ Selamat datang di sesi latihan.
   };
   let tokenRequestPending = false;
   let activeTokenCallback = null;
+  let sessionStartedAt = null;
+  let sessionTranscript = [];
+  const PRACTICE_HISTORY_KEY = "speakmatePracticeHistoryV1";
 
   const modes = {
     conversation: {
@@ -1149,10 +1198,10 @@ Selamat datang di sesi latihan.
       tag: "Conversation",
       instruction:
         "Act as a friendly conversation partner. Help the user " +
-        "practice everyday communication. Start with a brief greeting " +
-        "and one simple question. Respond naturally to what the user says " +
-        "and ask one relevant follow-up question at a time. Keep spoken " +
-        "responses concise."
+        "practice everyday communication. Do not start the conversation " +
+        "or speak before the user speaks first. After the user's first " +
+        "utterance, respond naturally to what they said and ask one " +
+        "relevant follow-up question at a time. Keep spoken responses concise."
     },
 
     interview: {
@@ -1161,10 +1210,11 @@ Selamat datang di sesi latihan.
       tag: "Interview",
       instruction:
         "Act as a realistic professional job interviewer and communication " +
-        "coach. Greet the candidate. Ask which job role they are applying " +
-        "for if unknown. Ask one interview question at a time. Listen to " +
-        "the answer and respond naturally before asking a relevant follow-up. " +
-        "Be supportive but professional."
+        "coach. Do not start speaking before the user speaks first. Treat the " +
+        "user's first utterance as the start of the interview practice. If the " +
+        "target job role is unknown, ask which role they want to practice for; " +
+        "otherwise begin with a relevant interview question. Ask one question " +
+        "at a time, respond naturally to each answer, and be supportive but professional."
     },
 
     "public-speaking": {
@@ -1172,11 +1222,13 @@ Selamat datang di sesi latihan.
       subtitle: "Latih kemampuan menyampaikan ide secara jelas dan terstruktur.",
       tag: "Public Speaking",
       instruction:
-        "Act as a supportive public speaking coach. Offer a simple speaking " +
-        "topic and let the user express their ideas. Ask relevant follow-up " +
-        "questions and provide concise suggestions about clarity, structure, " +
-        "and relevance. Do not claim to measure vocal traits you cannot " +
-        "reliably determine."
+        "Act as a supportive public speaking coach. Do not speak or offer a " +
+        "topic before the user speaks first. Treat the user's first utterance " +
+        "as the start of the practice. If the user begins a presentation or " +
+        "shares a topic, listen and respond as a coach; if they are unsure what " +
+        "to say, offer one simple topic or prompt. Ask relevant follow-up " +
+        "questions and give concise suggestions about clarity, structure, and " +
+        "relevance. Do not claim to measure vocal traits you cannot reliably determine."
     },
 
     professional: {
@@ -1184,10 +1236,11 @@ Selamat datang di sesi latihan.
       subtitle: "Latih komunikasi di lingkungan kerja dan situasi profesional.",
       tag: "Professional",
       instruction:
-        "Act as a professional communication coach. Simulate workplace " +
-        "situations such as meetings, discussions, updates, and talking to " +
-        "colleagues. Start with one realistic scenario and interact naturally, " +
-        "one turn at a time. Give concise constructive suggestions when useful."
+        "Act as a professional communication coach. Do not start speaking " +
+        "before the user speaks first. After their first utterance, simulate " +
+        "a relevant workplace situation such as a meeting, discussion, or " +
+        "project update. Interact naturally one turn at a time and give concise " +
+        "constructive suggestions when useful."
     }
   };
 
@@ -1232,6 +1285,8 @@ Selamat datang di sesi latihan.
 
     const target = document.getElementById("page-" + name);
     if (target) target.classList.add("active");
+
+    if (name === "history") renderPracticeHistory();
 
     const activeNavPage = name === "session" ? "modes" : name;
     document.querySelectorAll(".nav-link").forEach(link => {
@@ -1303,6 +1358,8 @@ Selamat datang di sesi latihan.
   function beginConfiguredPractice() {
     if (!modes[selectedMode]) return;
 
+    sessionStartedAt = Date.now();
+    sessionTranscript = [];
     document.getElementById("sessionTitle").textContent = modes[selectedMode].title;
     document.getElementById("sessionSubtitle").textContent = modes[selectedMode].subtitle;
     document.getElementById("sessionTag").textContent = modes[selectedMode].tag;
@@ -1328,6 +1385,191 @@ Selamat datang di sesi latihan.
   function leavePractice() {
     // showPage akan menahan navigasi jika sesi masih aktif.
     showPage("modes");
+  }
+
+  // =====================================================
+  // STAGE 3.2–3.3 — TRANSCRIPT, FEEDBACK, AND HISTORY
+  // =====================================================
+
+  function recordTranscript(role, text) {
+    if (typeof text !== "string") return;
+    const clean = text.replace(/\s+/g, " ").trim();
+    if (!clean) return;
+
+    const last = sessionTranscript[sessionTranscript.length - 1];
+    if (last && last.role === role) {
+      if (last.text === clean || last.text.endsWith(clean) || last.text.startsWith(clean)) return;
+      if (clean.startsWith(last.text)) last.text = clean;
+      else last.text += " " + clean;
+      last.timestamp = Date.now();
+      return;
+    }
+    sessionTranscript.push({ role, text: clean, timestamp: Date.now() });
+  }
+
+  function formatDuration(totalSeconds) {
+    const seconds = Math.max(0, Number(totalSeconds) || 0);
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    return minutes ? minutes + " mnt " + remainder + " dtk" : remainder + " dtk";
+  }
+
+  function getPracticeHistory() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(PRACTICE_HISTORY_KEY) || "[]");
+      return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+      console.warn("Tidak dapat membaca riwayat latihan:", error);
+      return [];
+    }
+  }
+
+  function savePracticeHistory(record) {
+    try {
+      const history = getPracticeHistory().filter(item => item && item.id !== record.id);
+      history.unshift(record);
+      localStorage.setItem(PRACTICE_HISTORY_KEY, JSON.stringify(history.slice(0, 30)));
+      return true;
+    } catch (error) {
+      console.warn("Tidak dapat menyimpan riwayat latihan:", error);
+      return false;
+    }
+  }
+
+  function extractLanguageFeedback(transcript) {
+    const cue = /language tip|a more natural way|more natural|you could say|you can say|instead of|better to say|corrected version|correction:/i;
+    return transcript
+      .filter(item => item.role === "assistant" && cue.test(item.text))
+      .map(item => item.text);
+  }
+
+  function endPracticeSession() {
+    const endedAt = Date.now();
+    const transcript = sessionTranscript.map(item => ({
+      role: item.role,
+      text: item.text,
+      timestamp: item.timestamp
+    }));
+    const record = {
+      id: String(endedAt),
+      date: new Date(endedAt).toISOString(),
+      mode: selectedMode,
+      modeTitle: modes[selectedMode] ? modes[selectedMode].title : selectedMode,
+      language: practiceLanguages[selectedLanguage] ? practiceLanguages[selectedLanguage].label : selectedLanguage,
+      level: selectedLevel,
+      explanation: explanationLabels[selectedExplanationLanguage] || selectedExplanationLanguage,
+      durationSeconds: sessionStartedAt ? Math.floor((endedAt - sessionStartedAt) / 1000) : 0,
+      userTurnCount: transcript.filter(item => item.role === "user").length,
+      transcript,
+      corrections: extractLanguageFeedback(transcript)
+    };
+
+    disconnectGemini();
+    record.saved = savePracticeHistory(record);
+    renderSessionSummary(record);
+    showPage("summary");
+  }
+
+  function renderSessionSummary(record) {
+    document.getElementById("summaryMode").textContent =
+      record.modeTitle + " · " + record.language + " · " + record.level;
+    document.getElementById("summaryDuration").textContent = formatDuration(record.durationSeconds);
+    document.getElementById("summaryTurns").textContent = String(record.userTurnCount || 0);
+
+    const correctionList = document.getElementById("summaryCorrections");
+    correctionList.replaceChildren();
+    if (record.corrections && record.corrections.length) {
+      record.corrections.forEach((correction, index) => {
+        const item = document.createElement("div");
+        item.className = "summary-item";
+        const title = document.createElement("strong");
+        title.textContent = "Language tip " + (index + 1);
+        const body = document.createElement("span");
+        body.textContent = correction;
+        item.append(title, body);
+        correctionList.appendChild(item);
+      });
+    } else {
+      const item = document.createElement("div");
+      item.className = "summary-item";
+      item.textContent = record.transcript && record.transcript.length
+        ? "Belum ada catatan koreksi yang dapat dikenali dari transkrip sesi ini. Kamu tetap bisa meninjau percakapan di bawah."
+        : "Transkrip suara tidak tersedia untuk sesi ini, jadi koreksi spesifik belum dapat ditampilkan.";
+      correctionList.appendChild(item);
+    }
+
+    const transcriptList = document.getElementById("summaryTranscript");
+    transcriptList.replaceChildren();
+    if (record.transcript && record.transcript.length) {
+      record.transcript.forEach(entry => {
+        const item = document.createElement("div");
+        item.className = "summary-item";
+        const title = document.createElement("strong");
+        title.textContent = entry.role === "user" ? "You" : "SpeakMate AI";
+        const body = document.createElement("span");
+        body.textContent = entry.text;
+        item.append(title, body);
+        transcriptList.appendChild(item);
+      });
+    } else {
+      const item = document.createElement("div");
+      item.className = "summary-item";
+      item.textContent = "Belum ada transkrip percakapan yang tersedia. Pastikan fitur transkripsi didukung dan dikirim oleh sesi Live API.";
+      transcriptList.appendChild(item);
+    }
+  }
+
+  function openSavedSummary(id) {
+    const record = getPracticeHistory().find(item => item && item.id === id);
+    if (!record) return;
+    renderSessionSummary(record);
+    showPage("summary");
+  }
+
+  function renderPracticeHistory() {
+    const container = document.getElementById("historyList");
+    if (!container) return;
+    container.replaceChildren();
+    const history = getPracticeHistory();
+    if (!history.length) {
+      const empty = document.createElement("div");
+      empty.className = "placeholder-panel empty-history";
+      const icon = document.createElement("div");
+      icon.className = "placeholder-icon";
+      icon.textContent = "🕘";
+      const heading = document.createElement("h2");
+      heading.textContent = "Belum ada riwayat latihan";
+      const message = document.createElement("p");
+      message.textContent = "Ringkasan sesi akan tersimpan di browser ini setelah kamu menekan End Session.";
+      empty.append(icon, heading, message);
+      container.appendChild(empty);
+      return;
+    }
+
+    history.forEach(record => {
+      const card = document.createElement("article");
+      card.className = "history-card";
+      const heading = document.createElement("h3");
+      heading.textContent = record.modeTitle || "Practice session";
+      const meta = document.createElement("div");
+      meta.className = "history-meta";
+      const date = record.date ? new Date(record.date).toLocaleString() : "Tanggal tidak tersedia";
+      meta.textContent = date + " · " + (record.language || "Bahasa tidak tersedia") +
+        " · " + (record.level || "Level tidak tersedia") +
+        " · " + formatDuration(record.durationSeconds) +
+        " · " + (record.userTurnCount || 0) + " giliran pengguna";
+      const note = document.createElement("p");
+      note.textContent = (record.corrections && record.corrections.length)
+        ? record.corrections.length + " catatan bahasa terdeteksi dari transkrip."
+        : "Belum ada catatan koreksi yang terdeteksi dari transkrip.";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn secondary";
+      button.textContent = "View Summary";
+      button.addEventListener("click", () => openSavedSummary(record.id));
+      card.append(heading, meta, note, button);
+      container.appendChild(card);
+    });
   }
 
   // =====================================================
@@ -1482,6 +1724,8 @@ Selamat datang di sesi latihan.
           generationConfig: {
             responseModalities: ["AUDIO"]
           },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
           systemInstruction: {
             parts: [{
               text:
@@ -1504,8 +1748,16 @@ Selamat datang di sesi latihan.
                     : practiceLanguages[selectedLanguage].instruction + " and Indonesian") +
                 ". If the user is learning Japanese, use natural Japanese; if Mandarin, use Mandarin Chinese. " +
                 "Do not switch the practice language just because the user uses a different language, " +
-                "unless they explicitly request a language change. For your first response, " +
-                "greet the user briefly in the selected practice language and begin the selected mode."
+                "unless they explicitly request a language change. Do not produce an unsolicited opening response " +
+                "after setup. Wait silently until the user speaks first. Treat the user's first utterance as the " +
+                "start of practice and respond according to the selected mode's instructions. " +
+                "For language learning, prioritize communication and never interrupt the user to correct them. " +
+                "When the user finishes a turn, respond to their meaning first. If there is a meaningful grammar, " +
+                "vocabulary, or naturalness issue, optionally add at most one short, encouraging correction using " +
+                "the phrase 'Language tip:' and provide a natural alternative. Do not correct every minor error or " +
+                "invent mistakes. Adapt explanations to the selected explanation language and proficiency level. " +
+                "Do not claim to score pronunciation, confidence, or vocal traits unless the system has reliable " +
+                "evidence for those measurements. At the end of a useful response, ask at most one relevant follow-up."
             }]
           }
         }
@@ -1597,12 +1849,21 @@ Selamat datang di sesi latihan.
       if (!data.serverContent) return;
 
       const content = data.serverContent;
+      if (content.inputTranscription && content.inputTranscription.text) {
+        recordTranscript("user", content.inputTranscription.text);
+      }
+      if (content.outputTranscription && content.outputTranscription.text) {
+        recordTranscript("assistant", content.outputTranscription.text);
+      }
 
       if (content.modelTurn && content.modelTurn.parts) {
         addLog("Gemini mengirim respons.");
 
         content.modelTurn.parts.forEach(part => {
-          if (part.text) addLog("Gemini: " + part.text);
+          if (part.text) {
+            addLog("Gemini: " + part.text);
+            recordTranscript("assistant", part.text);
+          }
 
           if (part.inlineData && part.inlineData.data) {
             addLog("Audio response Gemini diterima.");
