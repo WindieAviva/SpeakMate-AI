@@ -765,6 +765,14 @@
     .summary-card h3, .history-card h3 { margin: 0 0 8px; color: var(--ink); }
     .summary-card p, .history-card p { margin: 0; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
     .summary-section { margin-top: 22px; }
+    .evaluation-score-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 12px 0 18px; }
+    .evaluation-score-card { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--white); }
+    .evaluation-score-card strong { display: block; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .evaluation-score-value { display: block; margin: 8px 0; font-size: 25px; line-height: 1.1; color: var(--ink); font-weight: 800; }
+    .evaluation-score-track { height: 7px; border-radius: 999px; background: var(--page); overflow: hidden; }
+    .evaluation-score-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--purple)); }
+    .evaluation-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0; }
+    @media (max-width: 850px) { .evaluation-score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .summary-section h2 { margin: 0 0 12px; color: var(--ink); }
     .summary-list { display: grid; gap: 10px; }
     .summary-item { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); line-height: 1.6; overflow-wrap: anywhere; }
@@ -1099,8 +1107,13 @@
       <article class="summary-card"><h3>Duration</h3><p id="summaryDuration">—</p></article>
       <article class="summary-card"><h3>Your turns</h3><p id="summaryTurns">—</p></article>
     </div>
+    <div class="summary-section" id="summaryEvaluationSection">
+      <h2 id="summaryEvaluationTitle">Language evaluation</h2>
+      <div id="summaryEvaluationScores" class="evaluation-score-grid" aria-live="polite"></div>
+      <p id="summaryEvaluationNote" class="evaluation-note"></p>
+    </div>
     <div class="summary-section">
-      <h2>Language feedback</h2>
+      <h2 id="summaryFeedbackTitle">Language feedback</h2>
       <div id="summaryCorrections" class="summary-list" aria-live="polite"></div>
     </div>
     <div class="summary-section">
@@ -1266,6 +1279,10 @@ Selamat datang di sesi latihan.
   let selectedDebatePosition = "pro";
   let selectedDebateStarter = "user";
   let sessionTranscript = [];
+  let evaluationPending = false;
+  let evaluationOutputBuffer = "";
+  let evaluationTimeoutId = null;
+  let pendingSessionRecord = null;
   const PRACTICE_HISTORY_KEY = "speakmatePracticeHistoryV1";
 
   const modes = {
@@ -1530,6 +1547,10 @@ Selamat datang di sesi latihan.
 
     sessionStartedAt = Date.now();
     sessionTranscript = [];
+    evaluationPending = false;
+    evaluationOutputBuffer = "";
+    pendingSessionRecord = null;
+    if (evaluationTimeoutId) { clearTimeout(evaluationTimeoutId); evaluationTimeoutId = null; }
     document.getElementById("sessionTitle").textContent = modes[selectedMode].title;
     document.getElementById("sessionSubtitle").textContent = modes[selectedMode].subtitle;
     document.getElementById("sessionTag").textContent = modes[selectedMode].tag;
@@ -1628,18 +1649,21 @@ Selamat datang di sesi latihan.
   }
 
   function endPracticeSession() {
+    if (evaluationPending) return;
+
     const endedAt = Date.now();
     const transcript = sessionTranscript.map(item => ({
       role: item.role,
       text: item.text,
       timestamp: item.timestamp
     }));
-    const record = {
+    pendingSessionRecord = {
       id: String(endedAt),
       date: new Date(endedAt).toISOString(),
       mode: selectedMode,
       modeTitle: modes[selectedMode] ? modes[selectedMode].title : selectedMode,
       language: practiceLanguages[selectedLanguage] ? practiceLanguages[selectedLanguage].label : selectedLanguage,
+      languageCode: selectedLanguage,
       level: selectedLevel,
       explanation: explanationLabels[selectedExplanationLanguage] || selectedExplanationLanguage,
       debateTopic: selectedMode === "debate" ? getDebateTopic() : "",
@@ -1649,10 +1673,107 @@ Selamat datang di sesi latihan.
       durationSeconds: sessionStartedAt ? Math.floor((endedAt - sessionStartedAt) / 1000) : 0,
       userTurnCount: transcript.filter(item => item.role === "user").length,
       transcript,
-      corrections: extractLanguageFeedback(transcript)
+      corrections: extractLanguageFeedback(transcript),
+      evaluation: null
     };
 
+    // Ask the already-active Live session to review its own conversation before disconnecting.
+    // Authentication, WebSocket endpoint, microphone and audio transport remain unchanged.
+    if (socket && socket.readyState === WebSocket.OPEN && isGeminiConnected && transcript.some(item => item.role === "user")) {
+      evaluationPending = true;
+      evaluationOutputBuffer = "";
+      // Stop capturing the user's microphone while the AI prepares its final review.
+      if (microphoneActive) stopMicrophone(false);
+      const button = document.getElementById("disconnectButton");
+      button.disabled = true;
+      button.textContent = "Menyiapkan evaluasi…";
+      setVoiceState("speaking", "Preparing your review…", "AI sedang menilai sesi berdasarkan percakapan yang baru dilakukan.");
+      addLog("Meminta evaluasi akhir berdasarkan percakapan sesi ini...");
+      const userTranscript = transcript.filter(item => item.role === "user").map(item => item.text).join("\n");
+      const isIndonesian = selectedLanguage === "id";
+      const explanationLanguage = selectedExplanationLanguage === "id"
+        ? "Bahasa Indonesia"
+        : selectedExplanationLanguage === "practice"
+          ? practiceLanguages[selectedLanguage].instruction
+          : practiceLanguages[selectedLanguage].instruction + " and Bahasa Indonesia";
+      const evaluationPrompt = isIndonesian
+        ? "The user has ended their Indonesian practice session. Review only the user's actual Indonesian utterances from the current session. Provide feedback ONLY on word/phrase structure (word order and how words are arranged). Do NOT give percentages or scores. Do NOT evaluate or list grammar, vocabulary, naturalness, confidence, or pronunciation categories. Use this exact simple format, with explanations in " + explanationLanguage + ":\nSTRUCTURE CORRECTIONS:\n- Original: [short real quote]\n  Better structure: [corrected version]\n  Reason: [brief explanation]\nIf no clear structure issue exists, say: No clear word-structure correction needed. Never invent an error.\nUser transcript for reference:\n" + userTranscript
+        : "The user has ended a " + practiceLanguages[selectedLanguage].instruction + " practice session. Evaluate the user's communication using the conversation context and actual audio heard during this Live session where available. Use the user's transcript below as the main evidence. Respond in " + explanationLanguage + ", but keep these exact English score labels so the app can recognize them. Give integer scores from 0 to 100 only when supported by enough evidence; otherwise write N/A, never invent evidence. Confidence means observable delivery/hesitation only, not the user's inner feelings. Pronunciation must be based on audio you actually heard, not spelling/transcript alone. Format exactly:\nGrammar: NN% or N/A\nVocabulary: NN% or N/A\nNaturalness: NN% or N/A\nConfidence: NN% or N/A\nPronunciation: NN% or N/A\n\nFEEDBACK AND CORRECTIONS:\nFor each useful issue, include Category, Original (quote the user's real words), Suggested correction, and short reason. Include grammar, vocabulary, and naturalness where relevant; do not invent errors. Mention a strength and one next step. Keep feedback concise and appropriate to level " + selectedLevel + ".\nUser transcript for reference:\n" + userTranscript;
+      try {
+        socket.send(JSON.stringify({
+          clientContent: {
+            turns: [{ role: "user", parts: [{ text: evaluationPrompt }] }],
+            turnComplete: true
+          }
+        }));
+        evaluationTimeoutId = setTimeout(() => {
+          if (!evaluationPending) return;
+          addLog("Evaluasi belum selesai dalam batas waktu; menyimpan sesi tanpa skor yang tidak terverifikasi.");
+          finishPracticeSession();
+        }, 25000);
+        return;
+      } catch (error) {
+        addLog("Tidak dapat meminta evaluasi akhir: " + error.message);
+      }
+    }
+
+    finishPracticeSession();
+  }
+
+  function appendEvaluationOutput(text) {
+    if (!evaluationPending || typeof text !== "string") return;
+    const clean = text.replace(/\s+/g, " ").trim();
+    if (!clean) return;
+    if (!evaluationOutputBuffer) {
+      evaluationOutputBuffer = clean;
+    } else if (evaluationOutputBuffer === clean || evaluationOutputBuffer.endsWith(clean)) {
+      return;
+    } else if (clean.startsWith(evaluationOutputBuffer)) {
+      evaluationOutputBuffer = clean;
+    } else {
+      evaluationOutputBuffer += " " + clean;
+    }
+  }
+
+  function parseEvaluationOutput(text, languageCode) {
+    const output = String(text || "").trim();
+    if (!output) return null;
+    if (languageCode === "id") {
+      return { type: "structure", text: output };
+    }
+    const labels = {
+      grammar: /Grammar\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
+      vocabulary: /Vocabulary\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
+      naturalness: /Naturalness\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
+      confidence: /Confidence\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
+      pronunciation: /Pronunciation\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i
+    };
+    const scores = {};
+    Object.entries(labels).forEach(([key, pattern]) => {
+      const match = output.match(pattern);
+      if (match) {
+        const score = Number(match[1]);
+        if (score >= 0 && score <= 100) scores[key] = score;
+      }
+    });
+    return { type: "language", scores, text: output };
+  }
+
+  function finishPracticeSession() {
+    if (!pendingSessionRecord) return;
+    if (evaluationTimeoutId) { clearTimeout(evaluationTimeoutId); evaluationTimeoutId = null; }
+    if (evaluationPending) {
+      pendingSessionRecord.evaluation = parseEvaluationOutput(evaluationOutputBuffer, pendingSessionRecord.languageCode);
+      if (pendingSessionRecord.evaluation && pendingSessionRecord.evaluation.text) {
+        pendingSessionRecord.corrections = [pendingSessionRecord.evaluation.text];
+      }
+    }
+    evaluationPending = false;
+    const record = pendingSessionRecord;
+    pendingSessionRecord = null;
     disconnectGemini();
+    const button = document.getElementById("disconnectButton");
+    button.textContent = "End Session";
     record.saved = savePracticeHistory(record);
     renderSessionSummary(record);
     showPage("summary");
@@ -1667,24 +1788,63 @@ Selamat datang di sesi latihan.
     document.getElementById("summaryDuration").textContent = formatDuration(record.durationSeconds);
     document.getElementById("summaryTurns").textContent = String(record.userTurnCount || 0);
 
+    const isIndonesian = record.languageCode === "id" || /bahasa indonesia/i.test(record.language || "");
+    const evaluation = record.evaluation;
+    const evaluationScores = document.getElementById("summaryEvaluationScores");
+    const evaluationNote = document.getElementById("summaryEvaluationNote");
+    evaluationScores.replaceChildren();
+    document.getElementById("summaryEvaluationTitle").textContent = isIndonesian ? "Evaluasi Struktur Kata" : "Language Evaluation";
+    document.getElementById("summaryFeedbackTitle").textContent = isIndonesian ? "Koreksi Struktur Kata" : "Corrections & Feedback";
+    if (isIndonesian) {
+      evaluationNote.textContent = "Sesuai pengaturan, sesi Bahasa Indonesia hanya mendapat koreksi struktur kata/frasa, tanpa persentase penilaian.";
+    } else if (evaluation && evaluation.type === "language" && evaluation.scores) {
+      const labels = [
+        ["grammar", "Grammar"], ["vocabulary", "Vocabulary"], ["naturalness", "Naturalness"],
+        ["confidence", "Confidence"], ["pronunciation", "Pronunciation"]
+      ];
+      let availableCount = 0;
+      labels.forEach(([key, label]) => {
+        const card = document.createElement("article"); card.className = "evaluation-score-card";
+        const name = document.createElement("strong"); name.textContent = label;
+        const value = document.createElement("span"); value.className = "evaluation-score-value";
+        const score = evaluation.scores[key];
+        if (typeof score === "number") {
+          availableCount++;
+          value.textContent = score + "%";
+        } else {
+          value.textContent = "N/A";
+        }
+        const track = document.createElement("div"); track.className = "evaluation-score-track";
+        const fill = document.createElement("div"); fill.className = "evaluation-score-fill";
+        fill.style.width = (typeof score === "number" ? score : 0) + "%";
+        track.appendChild(fill); card.append(name, value, track); evaluationScores.appendChild(card);
+      });
+      evaluationNote.textContent = availableCount
+        ? "Persentase adalah estimasi AI berdasarkan bukti dari sesi. Pronunciation mengacu pada audio yang didengar; N/A berarti bukti belum cukup."
+        : "AI belum menghasilkan skor yang dapat dikenali. Lihat catatan di bawah; skor tidak dibuat secara otomatis.";
+    } else {
+      evaluationNote.textContent = "Evaluasi terstruktur belum tersedia untuk sesi ini. Sesi lama tidak diberi skor secara retroaktif.";
+    }
+
     const correctionList = document.getElementById("summaryCorrections");
     correctionList.replaceChildren();
-    if (record.corrections && record.corrections.length) {
-      record.corrections.forEach((correction, index) => {
-        const item = document.createElement("div");
-        item.className = "summary-item";
-        const title = document.createElement("strong");
-        title.textContent = "Language tip " + (index + 1);
-        const body = document.createElement("span");
-        body.textContent = correction;
-        item.append(title, body);
-        correctionList.appendChild(item);
-      });
+    const feedbackText = evaluation && evaluation.text ? evaluation.text :
+      (record.corrections && record.corrections.length ? record.corrections.join("\n\n") : "");
+    if (feedbackText) {
+      const item = document.createElement("div");
+      item.className = "summary-item";
+      const body = document.createElement("span");
+      body.style.whiteSpace = "pre-wrap";
+      body.textContent = feedbackText;
+      item.appendChild(body);
+      correctionList.appendChild(item);
     } else {
       const item = document.createElement("div");
       item.className = "summary-item";
       item.textContent = record.transcript && record.transcript.length
-        ? "Belum ada catatan koreksi yang dapat dikenali dari transkrip sesi ini. Kamu tetap bisa meninjau percakapan di bawah."
+        ? (isIndonesian
+          ? "Belum ada koreksi struktur kata yang dapat ditampilkan dari sesi ini."
+          : "Evaluasi belum tersedia untuk sesi ini. Sesi lama tidak diberi skor secara retroaktif.")
         : "Transkrip suara tidak tersedia untuk sesi ini, jadi koreksi spesifik belum dapat ditampilkan.";
       correctionList.appendChild(item);
     }
@@ -1753,9 +1913,13 @@ Selamat datang di sesi latihan.
         " · " + formatDuration(record.durationSeconds) +
         " · " + (record.userTurnCount || 0) + " giliran pengguna";
       const note = document.createElement("p");
-      note.textContent = (record.corrections && record.corrections.length)
-        ? record.corrections.length + " catatan bahasa terdeteksi dari transkrip."
-        : "Belum ada catatan koreksi yang terdeteksi dari transkrip.";
+      note.textContent = record.evaluation && record.evaluation.type === "language"
+        ? "Evaluasi bahasa tersedia untuk sesi ini."
+        : record.evaluation && record.evaluation.type === "structure"
+          ? "Koreksi struktur kata tersedia untuk sesi ini."
+          : (record.corrections && record.corrections.length)
+            ? record.corrections.length + " catatan bahasa tersimpan dari sesi ini."
+            : "Belum ada evaluasi yang tersimpan untuk sesi ini.";
       const button = document.createElement("button");
       button.type = "button";
       button.className = "btn secondary";
@@ -1794,7 +1958,7 @@ Selamat datang di sesi latihan.
 
     const totalSeconds = history.reduce((sum, item) => sum + Math.max(0, Number(item.durationSeconds) || 0), 0);
     const totalTurns = history.reduce((sum, item) => sum + Math.max(0, Number(item.userTurnCount) || 0), 0);
-    const totalTips = history.reduce((sum, item) => sum + (Array.isArray(item.corrections) ? item.corrections.length : 0), 0);
+    const feedbackSessions = history.filter(item => item && item.evaluation && item.evaluation.text).length;
     const activeDates = new Set(history.map(item => {
       const date = new Date(item.date || Number(item.id));
       return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-CA");
@@ -1806,7 +1970,7 @@ Selamat datang di sesi latihan.
       { label: "Total sesi", value: String(history.length), note: "Sesi yang tersimpan di browser ini" },
       { label: "Waktu latihan", value: timeLabel, note: "Akumulasi durasi seluruh sesi" },
       { label: "Giliran bicara", value: String(totalTurns), note: "Giliran pengguna yang tercatat" },
-      { label: "Language tips", value: String(totalTips), note: "Catatan bahasa yang terdeteksi dari transkrip" }
+      { label: "Sesi dengan feedback", value: String(feedbackSessions), note: "Sesi yang memiliki evaluasi atau koreksi tersimpan" }
     ];
     const statGrid = document.createElement("div");
     statGrid.className = "progress-stats";
@@ -1889,8 +2053,32 @@ Selamat datang di sesi latihan.
     const historyButton = document.createElement("button"); historyButton.type = "button"; historyButton.className = "btn primary"; historyButton.textContent = "Lihat semua riwayat →"; historyButton.addEventListener("click", () => showPage("history"));
     recentPanel.append(recentTitle, recentDesc, recentList, historyButton); container.appendChild(recentPanel);
 
+    const evaluatedSessions = history.filter(item => item && item.languageCode !== "id" && !/bahasa indonesia/i.test(item.language || "") && item.evaluation && item.evaluation.type === "language" && item.evaluation.scores);
+    const scorePanel = document.createElement("section"); scorePanel.className = "progress-panel"; scorePanel.style.marginTop = "16px";
+    const scoreTitle = document.createElement("h2"); scoreTitle.textContent = "Evaluasi Bahasa Asing";
+    const scoreDesc = document.createElement("p"); scoreDesc.className = "panel-description"; scoreDesc.textContent = "Rata-rata skor AI dari sesi bahasa non-Indonesia yang memiliki evaluasi tersimpan. Sesi Bahasa Indonesia tidak masuk ke perhitungan ini.";
+    scorePanel.append(scoreTitle, scoreDesc);
+    if (!evaluatedSessions.length) {
+      const emptyScores = document.createElement("p"); emptyScores.className = "evaluation-note"; emptyScores.textContent = "Belum ada evaluasi bahasa asing yang tersimpan. Selesaikan sesi bahasa Inggris, Jepang, atau Mandarin lalu buka ringkasannya."; scorePanel.appendChild(emptyScores);
+    } else {
+      const scoreGrid = document.createElement("div"); scoreGrid.className = "evaluation-score-grid";
+      [["grammar", "Grammar"], ["vocabulary", "Vocabulary"], ["naturalness", "Naturalness"], ["confidence", "Confidence"], ["pronunciation", "Pronunciation"]].forEach(([key, label]) => {
+        const values = evaluatedSessions.map(item => item.evaluation.scores[key]).filter(value => typeof value === "number" && value >= 0 && value <= 100);
+        const average = values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+        const card = document.createElement("article"); card.className = "evaluation-score-card";
+        const name = document.createElement("strong"); name.textContent = label;
+        const value = document.createElement("span"); value.className = "evaluation-score-value"; value.textContent = average === null ? "N/A" : average + "%";
+        const track = document.createElement("div"); track.className = "evaluation-score-track";
+        const fill = document.createElement("div"); fill.className = "evaluation-score-fill"; fill.style.width = (average === null ? 0 : average) + "%";
+        track.appendChild(fill); card.append(name, value, track); scoreGrid.appendChild(card);
+      });
+      scorePanel.appendChild(scoreGrid);
+      const countNote = document.createElement("p"); countNote.className = "evaluation-note"; countNote.textContent = "Berdasarkan " + evaluatedSessions.length + " sesi bahasa non-Indonesia yang dievaluasi."; scorePanel.appendChild(countNote);
+    }
+    container.appendChild(scorePanel);
+
     const disclaimer = document.createElement("div"); disclaimer.className = "progress-disclaimer";
-    disclaimer.textContent = "Catatan: statistik ini merangkum sesi yang tersimpan di browser ini. Language tips dihitung dari frasa koreksi yang terdeteksi, bukan penilaian kemampuan otomatis. Skor Grammar, Vocabulary, Naturalness, Confidence, dan Pronunciation belum ditampilkan karena sistem penilaian khusus belum diterapkan.";
+    disclaimer.textContent = "Catatan: skor merupakan estimasi AI berdasarkan bukti dari sesi, bukan sertifikasi kemampuan. Nilai pronunciation memerlukan bukti audio yang memadai. Sesi lama tidak dinilai ulang secara otomatis. Data tersimpan di browser ini.";
     container.appendChild(disclaimer);
   }
 
@@ -2073,15 +2261,13 @@ Selamat datang di sesi latihan.
                 "unless they explicitly request a language change. Do not produce an unsolicited opening response " +
                 "after setup. Wait silently until the user speaks first. Treat the user's first utterance as the " +
                 "start of practice and respond according to the selected mode's instructions. " +
-                (selectedMode === "debate"
-                  ? "During the debate, prioritize the arguments and do not interrupt with language corrections. " +
-                    "Only after the user clearly says 'end debate', provide brief language feedback based on " +
-                    "actual examples from their speech, using the phrase 'Language tip:' where useful. "
-                  : "For language learning, prioritize communication and never interrupt the user to correct them. " +
-                    "When the user finishes a turn, respond to their meaning first. If there is a meaningful grammar, " +
-                    "vocabulary, or naturalness issue, optionally add at most one short, encouraging correction using " +
-                    "the phrase 'Language tip:' and provide a natural alternative. Do not correct every minor error or " +
-                    "invent mistakes. ") +
+                (selectedLanguage === "id"
+                  ? (selectedMode === "debate"
+                    ? "During the Indonesian debate, prioritize arguments and do not interrupt. After the user says 'end debate', only offer corrections to word/phrase structure (word order and arrangement) in Indonesian. Do not give language scores or categorize grammar, vocabulary, naturalness, confidence, or pronunciation. "
+                    : "For Indonesian practice, prioritize communication. Only offer brief corrections to word/phrase structure (word order and arrangement) when clearly needed. Do not score or categorize grammar, vocabulary, naturalness, confidence, or pronunciation. Never invent mistakes. ")
+                  : (selectedMode === "debate"
+                    ? "During the debate, prioritize the arguments and do not interrupt with language corrections. Only after the user clearly says 'end debate', provide brief language feedback based on actual examples from their speech, using the phrase 'Language tip:' where useful. "
+                    : "For language learning, prioritize communication and never interrupt the user to correct them. When the user finishes a turn, respond to their meaning first. If there is a meaningful grammar, vocabulary, or naturalness issue, optionally add at most one short, encouraging correction using the phrase 'Language tip:' and provide a natural alternative. Do not correct every minor error or invent mistakes. ")) +
                 "Adapt explanations to the selected explanation language and proficiency level. " +
                 "Do not claim to score pronunciation, confidence, or vocal traits unless the system has reliable " +
                 "evidence for those measurements. At the end of a useful response, ask at most one relevant follow-up."
@@ -2180,6 +2366,7 @@ Selamat datang di sesi latihan.
         recordTranscript("user", content.inputTranscription.text);
       }
       if (content.outputTranscription && content.outputTranscription.text) {
+        if (evaluationPending) appendEvaluationOutput(content.outputTranscription.text);
         recordTranscript("assistant", content.outputTranscription.text);
       }
 
@@ -2189,6 +2376,7 @@ Selamat datang di sesi latihan.
         content.modelTurn.parts.forEach(part => {
           if (part.text) {
             addLog("Gemini: " + part.text);
+            if (evaluationPending) appendEvaluationOutput(part.text);
             recordTranscript("assistant", part.text);
           }
 
@@ -2207,6 +2395,13 @@ Selamat datang di sesi latihan.
 
       if (content.turnComplete) {
         addLog("Gemini selesai merespons.");
+
+        if (evaluationPending) {
+          if (evaluationTimeoutId) { clearTimeout(evaluationTimeoutId); evaluationTimeoutId = null; }
+          addLog("Evaluasi akhir diterima.");
+          finishPracticeSession();
+          return;
+        }
 
         if (microphoneActive) {
           setVoiceState("listening", "Your turn to speak", "Silakan berbicara. AI sedang mendengarkan.");
