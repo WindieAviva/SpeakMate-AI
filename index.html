@@ -1698,7 +1698,7 @@ Selamat datang di sesi latihan.
           : practiceLanguages[selectedLanguage].instruction + " and Bahasa Indonesia";
       const evaluationPrompt = isIndonesian
         ? "The user has ended their Indonesian practice session. Review only the user's actual Indonesian utterances from the current session. Provide feedback ONLY on word/phrase structure (word order and how words are arranged). Do NOT give percentages or scores. Do NOT evaluate or list grammar, vocabulary, naturalness, confidence, or pronunciation categories. Use this exact simple format, with explanations in " + explanationLanguage + ":\nSTRUCTURE CORRECTIONS:\n- Original: [short real quote]\n  Better structure: [corrected version]\n  Reason: [brief explanation]\nIf no clear structure issue exists, say: No clear word-structure correction needed. Never invent an error.\nUser transcript for reference:\n" + userTranscript
-        : "The user has ended a " + practiceLanguages[selectedLanguage].instruction + " practice session. Evaluate the user's communication using the conversation context and actual audio heard during this Live session where available. Use the user's transcript below as the main evidence. Respond in " + explanationLanguage + ", but keep these exact English score labels so the app can recognize them. Give integer scores from 0 to 100 only when supported by enough evidence; otherwise write N/A, never invent evidence. Confidence means observable delivery/hesitation only, not the user's inner feelings. Pronunciation must be based on audio you actually heard, not spelling/transcript alone. Format exactly:\nGrammar: NN% or N/A\nVocabulary: NN% or N/A\nNaturalness: NN% or N/A\nConfidence: NN% or N/A\nPronunciation: NN% or N/A\n\nFEEDBACK AND CORRECTIONS:\nFor each useful issue, include Category, Original (quote the user's real words), Suggested correction, and short reason. Include grammar, vocabulary, and naturalness where relevant; do not invent errors. Mention a strength and one next step. Keep feedback concise and appropriate to level " + selectedLevel + ".\nUser transcript for reference:\n" + userTranscript;
+        : "The user has ended a " + practiceLanguages[selectedLanguage].instruction + " practice session. Evaluate the user's communication using the conversation context and actual audio heard during this Live session where available. Use the user's transcript below as the main evidence. Respond in " + explanationLanguage + ", but keep these exact English score labels so the app can recognize them. IMPORTANT: If the user transcript contains meaningful speech, you MUST give numeric integer scores from 0 to 100 (write digits, not number words) for Grammar, Vocabulary, and Naturalness based on the transcript. Do not mark these three as N/A merely because the session is short; use the available evidence and make the estimate appropriately cautious. Only use N/A for these three if the transcript is empty or unusable. Confidence must reflect observable delivery/hesitation in audio, not the user's inner feelings; use N/A if audio evidence is unavailable. Pronunciation must be based on audio you actually heard, never spelling/transcript alone; use N/A if you cannot assess the audio. Never invent examples or claim evidence you did not hear. Format exactly, one item per line:\nGrammar: 0-100% or N/A\nVocabulary: 0-100% or N/A\nNaturalness: 0-100% or N/A\nConfidence: 0-100% or N/A\nPronunciation: 0-100% or N/A\n\nFEEDBACK AND CORRECTIONS:\nFor each useful issue, include Category, Original (quote the user's real words), Suggested correction, and short reason. Include grammar, vocabulary, and naturalness where relevant; do not invent errors. Mention a strength and one next step. Keep feedback concise and appropriate to level " + selectedLevel + ".\nUser transcript for reference:\n" + userTranscript;
       try {
         socket.send(JSON.stringify({
           clientContent: {
@@ -1741,19 +1741,39 @@ Selamat datang di sesi latihan.
     if (languageCode === "id") {
       return { type: "structure", text: output };
     }
+    function parseScoreValue(rawValue) {
+      const raw = String(rawValue || "").trim().toLowerCase().replace(/%|percent/g, "").trim();
+      if (/^\d{1,3}$/.test(raw)) {
+        const numeric = Number(raw);
+        return numeric >= 0 && numeric <= 100 ? numeric : null;
+      }
+      if (/^n\s*\/?\s*a$/.test(raw)) return null;
+      const words = raw.replace(/-/g, " ").split(/\s+/).filter(Boolean);
+      const small = { zero:0, one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16, seventeen:17, eighteen:18, nineteen:19 };
+      const tens = { twenty:20, thirty:30, forty:40, fifty:50, sixty:60, seventy:70, eighty:80, ninety:90 };
+      let result = null;
+      if (words.length === 2 && words[0] === "one" && words[1] === "hundred") result = 100;
+      else if (words.length === 1) {
+        if (Object.prototype.hasOwnProperty.call(small, words[0])) result = small[words[0]];
+        else if (Object.prototype.hasOwnProperty.call(tens, words[0])) result = tens[words[0]];
+      } else if (words.length === 2 && Object.prototype.hasOwnProperty.call(tens, words[0]) && Object.prototype.hasOwnProperty.call(small, words[1]) && small[words[1]] < 10) {
+        result = tens[words[0]] + small[words[1]];
+      }
+      return result !== null && result >= 0 && result <= 100 ? result : null;
+    }
     const labels = {
-      grammar: /Grammar\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
-      vocabulary: /Vocabulary\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
-      naturalness: /Naturalness\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
-      confidence: /Confidence\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i,
-      pronunciation: /Pronunciation\s*[:\-]?\s*(\d{1,3})\s*(?:%|percent)?/i
+      grammar: /Grammar\s*[:\-]?\s*(\d{1,3}|N\s*\/?\s*A|[a-z]+(?:[- ][a-z]+){0,2})\s*(?:%|percent)?/i,
+      vocabulary: /Vocabulary\s*[:\-]?\s*(\d{1,3}|N\s*\/?\s*A|[a-z]+(?:[- ][a-z]+){0,2})\s*(?:%|percent)?/i,
+      naturalness: /Naturalness\s*[:\-]?\s*(\d{1,3}|N\s*\/?\s*A|[a-z]+(?:[- ][a-z]+){0,2})\s*(?:%|percent)?/i,
+      confidence: /Confidence\s*[:\-]?\s*(\d{1,3}|N\s*\/?\s*A|[a-z]+(?:[- ][a-z]+){0,2})\s*(?:%|percent)?/i,
+      pronunciation: /Pronunciation\s*[:\-]?\s*(\d{1,3}|N\s*\/?\s*A|[a-z]+(?:[- ][a-z]+){0,2})\s*(?:%|percent)?/i
     };
     const scores = {};
     Object.entries(labels).forEach(([key, pattern]) => {
       const match = output.match(pattern);
       if (match) {
-        const score = Number(match[1]);
-        if (score >= 0 && score <= 100) scores[key] = score;
+        const score = parseScoreValue(match[1]);
+        if (typeof score === "number") scores[key] = score;
       }
     });
     return { type: "language", scores, text: output };
