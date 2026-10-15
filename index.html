@@ -774,8 +774,37 @@
     .history-meta { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 8px 0 14px; }
     .empty-history { text-align: center; padding: 30px 20px; }
     .empty-history .placeholder-icon { margin: 0 auto 12px; }
-    @media (max-width: 850px) { .summary-grid { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 580px) { .summary-grid { grid-template-columns: 1fr; } .summary-card, .history-card { padding: 16px; } }
+    .progress-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 22px 0; }
+    .progress-stat, .progress-panel { min-width: 0; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+    .progress-stat .stat-label { color: var(--muted); font-size: 13px; }
+    .progress-stat .stat-value { margin: 8px 0 3px; color: var(--ink); font-size: 29px; font-weight: 800; letter-spacing: -.7px; overflow-wrap: anywhere; }
+    .progress-stat .stat-note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .progress-columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 16px; margin-bottom: 16px; }
+    .progress-panel h2 { margin: 0 0 6px; font-size: 18px; }
+    .progress-panel .panel-description { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .weekly-chart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; align-items: end; min-height: 145px; }
+    .week-day { display: flex; flex-direction: column; align-items: center; justify-content: end; gap: 7px; min-width: 0; height: 145px; }
+    .week-count { color: var(--muted); font-size: 11px; font-weight: 700; }
+    .week-track { display: flex; align-items: end; justify-content: center; width: 100%; height: 100px; border-radius: 9px; background: var(--page); overflow: hidden; }
+    .week-bar { width: 100%; min-height: 3px; border-radius: 8px 8px 0 0; background: linear-gradient(180deg, var(--blue), var(--purple)); }
+    .week-label { color: var(--muted); font-size: 11px; }
+    .progress-breakdown { display: grid; gap: 15px; }
+    .breakdown-row { display: grid; gap: 7px; }
+    .breakdown-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+    .breakdown-head strong { color: var(--ink); }
+    .breakdown-head span { color: var(--muted); white-space: nowrap; }
+    .breakdown-track { height: 8px; border-radius: 999px; background: var(--page); overflow: hidden; }
+    .breakdown-fill { height: 100%; border-radius: inherit; background: var(--purple); }
+    .progress-recent { display: grid; gap: 10px; }
+    .progress-recent-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .progress-recent-item:last-child { border-bottom: 0; padding-bottom: 0; }
+    .progress-recent-item strong { display: block; color: var(--ink); font-size: 14px; }
+    .progress-recent-item small { display: block; margin-top: 4px; color: var(--muted); line-height: 1.5; }
+    .progress-recent-item .btn { flex-shrink: 0; }
+    .progress-disclaimer { margin-top: 16px; padding: 14px 16px; border-radius: 12px; background: var(--purple-light); color: var(--purple-dark); font-size: 12px; line-height: 1.6; }
+    .empty-progress .btn { margin-top: 18px; }
+    @media (max-width: 850px) { .summary-grid { grid-template-columns: 1fr 1fr; } .progress-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .progress-columns { grid-template-columns: 1fr; } }
+    @media (max-width: 580px) { .summary-grid { grid-template-columns: 1fr; } .summary-card, .history-card, .progress-stat, .progress-panel { padding: 16px; } .progress-stat .stat-value { font-size: 25px; } .weekly-chart { gap: 6px; } .progress-recent-item { align-items: flex-start; flex-direction: column; } }
 
 </style>
 </head>
@@ -1025,18 +1054,20 @@
     </div>
   </section>
 
-  <!-- PAGE 4: PROGRESS (SKELETON FOR PHASE 1) -->
+  <!-- PAGE 4: PROGRESS DASHBOARD -->
   <section class="page" id="page-progress">
     <div class="page-heading">
       <span class="eyebrow">YOUR LEARNING JOURNEY</span>
       <h1>Your Progress</h1>
-      <p>Ringkasan perkembangan kemampuan bahasa Inggrismu akan ditampilkan di sini.</p>
+      <p>Lihat konsistensi latihan dan kebiasaan komunikasimu berdasarkan sesi yang tersimpan di browser ini.</p>
     </div>
-    <div class="placeholder-panel">
-      <div class="placeholder-icon">📈</div>
-      <h2>Progress tracking is coming soon</h2>
-      <p>Di tahap berikutnya, halaman ini akan menampilkan perkembangan skor Grammar, Vocabulary, Naturalness, Confidence, dan Pronunciation dari sesi latihanmu. Belum ada skor yang ditampilkan karena fitur evaluasi belum dibuat.</p>
-      <span class="placeholder-note">Tahap 1 · Kerangka halaman</span>
+    <div id="progressDashboard" aria-live="polite">
+      <div class="placeholder-panel empty-progress">
+        <div class="placeholder-icon">📈</div>
+        <h2>Progress kamu akan muncul di sini</h2>
+        <p>Selesaikan sesi latihan lalu tekan End Session. Data latihan akan dirangkum secara otomatis dari riwayat yang tersimpan.</p>
+        <button class="btn primary" type="button" onclick="showPage('modes')">Mulai latihan →</button>
+      </div>
     </div>
   </section>
 
@@ -1348,6 +1379,7 @@ Selamat datang di sesi latihan.
     if (target) target.classList.add("active");
 
     if (name === "history") renderPracticeHistory();
+    if (name === "progress") renderProgressDashboard();
 
     const activeNavPage = name === "session" ? "modes" : name;
     document.querySelectorAll(".nav-link").forEach(link => {
@@ -1732,6 +1764,134 @@ Selamat datang di sesi latihan.
       card.append(heading, meta, note, button);
       container.appendChild(card);
     });
+  }
+
+  function renderProgressDashboard() {
+    const container = document.getElementById("progressDashboard");
+    if (!container) return;
+    container.replaceChildren();
+    const history = getPracticeHistory().filter(item => item && typeof item === "object");
+
+    if (!history.length) {
+      const empty = document.createElement("div");
+      empty.className = "placeholder-panel empty-progress";
+      const icon = document.createElement("div");
+      icon.className = "placeholder-icon";
+      icon.textContent = "📈";
+      const heading = document.createElement("h2");
+      heading.textContent = "Mulai bangun progresmu";
+      const message = document.createElement("p");
+      message.textContent = "Belum ada sesi yang tersimpan. Pilih mode latihan, selesaikan sesi, lalu tekan End Session untuk mulai melihat aktivitasmu di sini.";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn primary";
+      button.textContent = "Mulai latihan →";
+      button.addEventListener("click", () => showPage("modes"));
+      empty.append(icon, heading, message, button);
+      container.appendChild(empty);
+      return;
+    }
+
+    const totalSeconds = history.reduce((sum, item) => sum + Math.max(0, Number(item.durationSeconds) || 0), 0);
+    const totalTurns = history.reduce((sum, item) => sum + Math.max(0, Number(item.userTurnCount) || 0), 0);
+    const totalTips = history.reduce((sum, item) => sum + (Array.isArray(item.corrections) ? item.corrections.length : 0), 0);
+    const activeDates = new Set(history.map(item => {
+      const date = new Date(item.date || Number(item.id));
+      return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-CA");
+    }).filter(Boolean));
+    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const timeLabel = hours ? hours + " j " + (minutes % 60) + " mnt" : minutes + " mnt";
+    const stats = [
+      { label: "Total sesi", value: String(history.length), note: "Sesi yang tersimpan di browser ini" },
+      { label: "Waktu latihan", value: timeLabel, note: "Akumulasi durasi seluruh sesi" },
+      { label: "Giliran bicara", value: String(totalTurns), note: "Giliran pengguna yang tercatat" },
+      { label: "Language tips", value: String(totalTips), note: "Catatan bahasa yang terdeteksi dari transkrip" }
+    ];
+    const statGrid = document.createElement("div");
+    statGrid.className = "progress-stats";
+    stats.forEach(stat => {
+      const card = document.createElement("article");
+      card.className = "progress-stat";
+      const label = document.createElement("div"); label.className = "stat-label"; label.textContent = stat.label;
+      const value = document.createElement("div"); value.className = "stat-value"; value.textContent = stat.value;
+      const note = document.createElement("div"); note.className = "stat-note"; note.textContent = stat.note;
+      card.append(label, value, note); statGrid.appendChild(card);
+    });
+    container.appendChild(statGrid);
+
+    const columns = document.createElement("div");
+    columns.className = "progress-columns";
+    const weeklyPanel = document.createElement("section"); weeklyPanel.className = "progress-panel";
+    const weeklyTitle = document.createElement("h2"); weeklyTitle.textContent = "Aktivitas 7 hari terakhir";
+    const weeklyDesc = document.createElement("p"); weeklyDesc.className = "panel-description"; weeklyDesc.textContent = "Jumlah sesi yang kamu selesaikan setiap hari.";
+    const chart = document.createElement("div"); chart.className = "weekly-chart";
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = [];
+    for (let offset = 6; offset >= 0; offset--) {
+      const day = new Date(today); day.setDate(today.getDate() - offset);
+      const key = day.toLocaleDateString("en-CA");
+      const count = history.filter(item => {
+        const date = new Date(item.date || Number(item.id));
+        return !Number.isNaN(date.getTime()) && date.toLocaleDateString("en-CA") === key;
+      }).length;
+      days.push({ day, count });
+    }
+    const maxCount = Math.max(1, ...days.map(item => item.count));
+    days.forEach(item => {
+      const col = document.createElement("div"); col.className = "week-day";
+      const count = document.createElement("div"); count.className = "week-count"; count.textContent = String(item.count);
+      const track = document.createElement("div"); track.className = "week-track";
+      const bar = document.createElement("div"); bar.className = "week-bar"; bar.style.height = item.count ? Math.max(8, item.count / maxCount * 100) + "%" : "3px";
+      bar.setAttribute("aria-label", item.count + " sesi"); track.appendChild(bar);
+      const label = document.createElement("div"); label.className = "week-label"; label.textContent = item.day.toLocaleDateString("id-ID", { weekday: "short" });
+      col.append(count, track, label); chart.appendChild(col);
+    });
+    weeklyPanel.append(weeklyTitle, weeklyDesc, chart);
+
+    const breakdownPanel = document.createElement("section"); breakdownPanel.className = "progress-panel";
+    const breakdownTitle = document.createElement("h2"); breakdownTitle.textContent = "Mode latihan";
+    const breakdownDesc = document.createElement("p"); breakdownDesc.className = "panel-description"; breakdownDesc.textContent = "Mode yang paling sering kamu gunakan berdasarkan riwayat.";
+    const breakdown = document.createElement("div"); breakdown.className = "progress-breakdown";
+    const modeCounts = new Map();
+    history.forEach(item => {
+      const key = item.modeTitle || item.mode || "Mode latihan";
+      modeCounts.set(key, (modeCounts.get(key) || 0) + 1);
+    });
+    [...modeCounts.entries()].sort((a,b) => b[1] - a[1]).forEach(([name, count]) => {
+      const row = document.createElement("div"); row.className = "breakdown-row";
+      const head = document.createElement("div"); head.className = "breakdown-head";
+      const title = document.createElement("strong"); title.textContent = name;
+      const amount = document.createElement("span"); amount.textContent = count + (count === 1 ? " sesi" : " sesi");
+      const track = document.createElement("div"); track.className = "breakdown-track";
+      const fill = document.createElement("div"); fill.className = "breakdown-fill"; fill.style.width = (count / history.length * 100) + "%";
+      track.appendChild(fill); head.append(title, amount); row.append(head, track); breakdown.appendChild(row);
+    });
+    breakdownPanel.append(breakdownTitle, breakdownDesc, breakdown);
+    columns.append(weeklyPanel, breakdownPanel); container.appendChild(columns);
+
+    const recentPanel = document.createElement("section"); recentPanel.className = "progress-panel";
+    const recentTitle = document.createElement("h2"); recentTitle.textContent = "Sesi terbaru";
+    const recentDesc = document.createElement("p"); recentDesc.className = "panel-description"; recentDesc.textContent = "Buka ringkasan sesi untuk meninjau transkrip dan catatan bahasa.";
+    const recentList = document.createElement("div"); recentList.className = "progress-recent";
+    history.slice(0, 3).forEach(record => {
+      const row = document.createElement("div"); row.className = "progress-recent-item";
+      const details = document.createElement("div");
+      const title = document.createElement("strong"); title.textContent = record.modeTitle || "Practice session";
+      const meta = document.createElement("small");
+      const date = record.date ? new Date(record.date).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "Tanggal tidak tersedia";
+      meta.textContent = date + " · " + (record.language || "Bahasa tidak tersedia") + " · " + formatDuration(record.durationSeconds);
+      details.append(title, meta);
+      const button = document.createElement("button"); button.type = "button"; button.className = "btn secondary"; button.textContent = "Lihat ringkasan";
+      button.addEventListener("click", () => openSavedSummary(record.id));
+      row.append(details, button); recentList.appendChild(row);
+    });
+    const historyButton = document.createElement("button"); historyButton.type = "button"; historyButton.className = "btn primary"; historyButton.textContent = "Lihat semua riwayat →"; historyButton.addEventListener("click", () => showPage("history"));
+    recentPanel.append(recentTitle, recentDesc, recentList, historyButton); container.appendChild(recentPanel);
+
+    const disclaimer = document.createElement("div"); disclaimer.className = "progress-disclaimer";
+    disclaimer.textContent = "Catatan: statistik ini merangkum sesi yang tersimpan di browser ini. Language tips dihitung dari frasa koreksi yang terdeteksi, bukan penilaian kemampuan otomatis. Skor Grammar, Vocabulary, Naturalness, Confidence, dan Pronunciation belum ditampilkan karena sistem penilaian khusus belum diterapkan.";
+    container.appendChild(disclaimer);
   }
 
   // =====================================================
